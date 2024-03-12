@@ -21,6 +21,7 @@ from loguru import logger
 
 matplotlib.rcParams.update({"font.size": 14})
 FIT_REPORT_MIN_CORREL = 0.7
+DEFAULT_SECOND_ORDER_MODEL = "2nd_4peaks"
 
 
 def fit_spectrum_plot(
@@ -29,22 +30,35 @@ def fit_spectrum_plot(
     plot_annotation=True,
     plot_residuals=True,
 ):  # pragma: no cover
-    first_order = aggregated_spectra[RegionNames.first_order]
-    second_order = aggregated_spectra[RegionNames.second_order]
+    for region_name, region_aggregated_spectrum in aggregated_spectra.items():
+        sources = region_aggregated_spectrum.aggregated_spectrum.sources
+        sample = sources[0].file_info.sample
 
-    sources = first_order.aggregated_spectrum.sources
-    sample = sources[0].file_info.sample
-    second_model_name = "2nd_4peaks"
-    second_model = second_order.fit_model_results.get(second_model_name)
-    for first_model_name, first_model in first_order.fit_model_results.items():
-        prepare_combined_spectrum_fit_result_plot(
-            first_model,
-            second_model,
-            sample,
-            export_paths,
-            plot_annotation=plot_annotation,
-            plot_residuals=plot_residuals,
-        )
+        second_model = None
+        if (
+            region_name == RegionNames.first_order
+            and RegionNames.second_order in aggregated_spectra
+        ):
+            second_order = aggregated_spectra[RegionNames.second_order]
+            second_model = second_order.fit_model_results.get(
+                DEFAULT_SECOND_ORDER_MODEL
+            )
+        for (
+            model_name,
+            current_model,
+        ) in region_aggregated_spectrum.fit_model_results.items():
+            logger.warning(
+                f"Starting to plot for {sample.id}, {region_name} {model_name}."
+            )
+
+            prepare_combined_spectrum_fit_result_plot(
+                current_model,
+                second_model,
+                sample,
+                export_paths,
+                plot_annotation=plot_annotation,
+                plot_residuals=plot_residuals,
+            )
 
 
 def prepare_combined_spectrum_fit_result_plot(
@@ -55,13 +69,13 @@ def prepare_combined_spectrum_fit_result_plot(
     plot_annotation=True,
     plot_residuals=True,
 ):
+    first_model_name = first_model.model.name
+
     plt.figure(figsize=(28, 24))
     gs = gridspec.GridSpec(4, 1, height_ratios=[4, 1, 4, 1])
     ax = plt.subplot(gs[0])
     ax_res = plt.subplot(gs[1])
-    ax.set_title(f"{sample.id}")
-
-    first_model_name = first_model.model.name
+    ax.set_title(f"{sample.id}, {first_model_name}")
 
     fit_plot_first(ax, ax_res, first_model, plot_residuals=plot_residuals)
     _bbox_artists = None
