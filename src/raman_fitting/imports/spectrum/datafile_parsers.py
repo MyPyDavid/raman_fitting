@@ -2,7 +2,8 @@ from typing import Sequence
 from pathlib import Path
 
 import numpy as np
-from tablib import Dataset
+import tablib
+from tablib import Dataset, detect_format
 
 from loguru import logger
 
@@ -25,9 +26,52 @@ def filter_data_for_numeric(data: Dataset):
 
 
 def load_dataset_from_file(filepath, **kwargs) -> Dataset:
+    _format = detect_format(filepath)
+    if _format is None:
+        _format = "csv"
     with open(filepath, "r") as fh:
-        imported_data = Dataset(**kwargs).load(fh)
+        imported_data = Dataset(**kwargs).load(fh, format=_format)
     return imported_data
+
+
+def ignore_extra_columns(dataset: Dataset, header_keys: Sequence[str]) -> Dataset:
+    new_dataset = tablib.Dataset()
+    for n, i in enumerate(header_keys):
+        new_dataset.append_col(dataset.get_col(n))
+    new_dataset.headers = header_keys
+    return new_dataset
+
+
+def split_single_rows_into_columns(
+    dataset: Dataset, header_keys: Sequence[str]
+) -> Dataset:
+    col0 = dataset.get_col(0)
+    col0_split_rows = list(map(lambda x: x.split(), col0))
+    _col0_split_len = set(len(i) for i in col0_split_rows)
+    col0_split_cols = list(zip(*col0_split_rows))
+    new_dataset = tablib.Dataset()
+    for n, i in enumerate(header_keys):
+        new_dataset.append_col(col0_split_cols[n])
+    new_dataset.headers = header_keys
+    return new_dataset
+
+
+def validate_columns_with_header_keys(
+    dataset: Dataset, header_keys: Sequence[str]
+) -> Dataset | None:
+    if not dataset:
+        return dataset
+    if dataset.width == 1:
+        logger.warning(
+            f"data has only a single columns {dataset.width}, splitting into {len(header_keys)}"
+        )
+        dataset = split_single_rows_into_columns(dataset, header_keys)
+    elif dataset.width > len(header_keys):
+        logger.warning(
+            f"data has too many columns {dataset.width}, taking first {len(header_keys)}"
+        )
+        dataset = ignore_extra_columns(dataset, header_keys)
+    return dataset
 
 
 def check_header_keys(dataset: Dataset, header_keys: Sequence[str]):
@@ -42,6 +86,7 @@ def read_file_with_tablib(
     filepath: Path, header_keys: Sequence[str], sort_by=None
 ) -> Dataset:
     data = load_dataset_from_file(filepath)
+    data = validate_columns_with_header_keys(data, header_keys)
     data = check_header_keys(data, header_keys)
     numeric_data = filter_data_for_numeric(data)
     sort_by = header_keys[0] if sort_by is None else sort_by
