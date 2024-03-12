@@ -64,6 +64,7 @@ def run(
     ],
     run_mode: Annotated[RunModes, typer.Argument()] = RunModes.NORMAL,
     multiprocessing: Annotated[bool, typer.Option("--multiprocessing")] = False,
+    index_file: Annotated[Path, typer.Option()] = None,
 ):
     if run_mode is None:
         print("No make run mode passed")
@@ -81,7 +82,18 @@ def run(
                 "sample_groups": ["test"],
             }
         )
+
+    if index_file is not None:
+        index_file = Path(index_file).resolve()
+        if not index_file.exists():
+            raise FileNotFoundError(f"File does not exist. {index_file} ")
+        kwargs.update({"index": index_file})
+    if fit_models:
+        kwargs.update({"fit_model_region_names": fit_models})
+    if sample_ids:
+        kwargs.update({"sample_ids": sample_ids})
     logger.info(f"Starting raman_fitting with CLI args:\n{run_mode}")
+    logger.info(f"Starting raman_fitting with CLI kwargs:\n{kwargs}")
     _main_run = MainDelegator(**kwargs)
 
 
