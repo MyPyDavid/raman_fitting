@@ -1,5 +1,7 @@
 from typing import List, Dict
 
+from pydantic import ValidationError
+
 from raman_fitting.delegating.run_fit_multi import run_fit_multiprocessing
 from raman_fitting.models.spectrum import SpectrumData
 from raman_fitting.types import LMFitModelCollection
@@ -48,8 +50,12 @@ def prepare_spec_fit_regions(
     spec_fits = []
     for model_name, model in model_region_grp.items():
         region = model.region_name.name
-        spec_fit = SpectrumFitModel(spectrum=spectrum, model=model, region=region)
-        spec_fits.append(spec_fit)
+        try:
+            spec_fit = SpectrumFitModel(spectrum=spectrum, model=model, region=region)
+            spec_fits.append(spec_fit)
+        except ValidationError as e:
+            logger.error(f"Could not fit model {model_name} to spectrum {region}.{e}")
+
     return spec_fits
 
 

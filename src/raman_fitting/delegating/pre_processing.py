@@ -12,7 +12,8 @@ from .models import (
 from loguru import logger
 
 from raman_fitting.config.path_settings import CLEAN_SPEC_REGION_NAME_PREFIX
-from ..imports.spectrum.spectra_collection import SpectraDataCollection
+from raman_fitting.config import settings
+from raman_fitting.imports.spectrum.spectra_collection import SpectraDataCollection
 
 
 def prepare_aggregated_spectrum_from_files(
@@ -23,7 +24,10 @@ def prepare_aggregated_spectrum_from_files(
     data_sources = []
     for i in raman_files:
         read = SpectrumReader(i.file)
-        processed = SpectrumProcessor(read.spectrum)
+        processed = SpectrumProcessor(
+            spectrum=read.spectrum, region_limits=settings.default_regions
+        )
+
         prepared_spec = PreparedSampleSpectrum(
             file_info=i, read=read, processed=processed
         )

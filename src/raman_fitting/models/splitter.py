@@ -17,7 +17,7 @@ class SplitSpectrum(BaseModel):
     info: Dict[str, Any] = Field(default_factory=dict)
 
     @model_validator(mode="after")
-    def process_spectrum(self) -> "SplitSpectrum":
+    def spit_spectrum_into_regions(self) -> "SplitSpectrum":
         if self.region_limits is None:
             region_limits = get_default_spectrum_region_limits()
             self.region_limits = region_limits
@@ -68,7 +68,6 @@ def split_spectrum_data_in_regions(
     the names of the regions are taken from SpectrumRegionLimits
     and set as attributes to the instance.
     """
-
     if spec_region_limits is None:
         spec_region_limits = get_default_spectrum_region_limits()
     spec_regions = {}

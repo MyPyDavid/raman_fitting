@@ -1,6 +1,7 @@
 from enum import StrEnum
 from typing import List, Optional, Dict
 
+from loguru import logger
 from pydantic import (
     BaseModel,
     ConfigDict,
@@ -8,6 +9,7 @@ from pydantic import (
     Field,
     field_validator,
     model_validator,
+    ValidationError,
 )
 from lmfit import Parameters
 from lmfit.models import Model
@@ -215,5 +217,9 @@ def get_peaks_from_peak_definitions(
         if peak_type_defs is None:
             continue
         for peak_name, peak_def in peak_type_defs.items():
-            peak_models[peak_name] = BasePeak(**peak_def)
+            try:
+                peak_models[peak_name] = BasePeak(**peak_def)
+            except ValidationError as e:
+                logger.error(f"Definition:\n{peak_def}\n{e}")
+
     return peak_models

@@ -138,7 +138,7 @@ class IndexSelector(BaseModel):
             rf_selection_index = rf_index_groups + rf_index_samples
             self.selection = rf_selection_index
             logger.debug(
-                f"{self.__class__.__qualname__} selected {len(self.selection)} of {rf_index}. "
+                f"{self.__class__.__qualname__} selected {len(self.selection)} of {len(rf_index)}. "
             )
             return self
 
@@ -180,16 +180,22 @@ def select_index(
 
 def collect_raman_file_index_info(
     raman_files: Sequence[Path] | None = None, **kwargs
-) -> RamanFileInfoSet:
+) -> RamanFileInfoSet | None:
     """loops over the files and scrapes the index data from each file"""
+    if raman_files is None:
+        return
     raman_files = list(raman_files)
-    total_files = []
-    dirs = [i for i in raman_files if i.is_dir()]
-    files = [i for i in raman_files if i.is_file()]
+    dirs, files, total_files = [], [], []
+    for f in raman_files:
+        f_ = f.resolve()
+        if f_.is_dir():
+            dirs.append(f_)
+        elif f_.is_file():
+            files.append(f_)
     total_files += files
     suffixes = [i.lstrip(".") for i in SPECTRUM_FILETYPE_PARSERS.keys()]
     for d1 in dirs:
-        paths = [path for i in suffixes for path in d1.glob(f"*.{i}")]
+        paths = [path for i in suffixes for path in d1.rglob(f"*.{i}")]
         total_files += paths
     index, files = collect_raman_file_infos(total_files, **kwargs)
     logger.info(f"successfully made index {len(index)} from {len(files)} files")

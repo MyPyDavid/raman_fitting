@@ -1,5 +1,6 @@
 # pylint: disable=W0614,W0401,W0611,W0622,C0103,E0401,E0402
 from dataclasses import dataclass, field
+from pathlib import Path
 from typing import Dict, List, Sequence, Any
 
 from raman_fitting.config.path_settings import (
@@ -45,7 +46,7 @@ class MainDelegator:
     Creates plots and files in the config RESULTS directory.
     """
 
-    run_mode: RunModes
+    run_mode: RunModes | None = None
     use_multiprocessing: bool = False
     lmfit_models: LMFitModelCollection = field(
         default_factory=lambda: settings.default_models
@@ -56,7 +57,7 @@ class MainDelegator:
     fit_model_specific_names: Sequence[str] | None = None
     sample_ids: Sequence[str] = field(default_factory=list)
     sample_groups: Sequence[str] = field(default_factory=list)
-    index: RamanFileIndex = None
+    index: RamanFileIndex | None = None
     selection: Sequence[RamanFileInfo] = field(init=False)
     selected_models: Sequence[RamanFileInfo] = field(init=False)
 
@@ -70,6 +71,10 @@ class MainDelegator:
             index_file = run_mode_paths.index_file
             self.index = initialize_index_from_source_files(
                 files=raman_files, index_file=index_file, force_reindex=True
+            )
+        elif isinstance(self.index, Path):
+            self.index = initialize_index_from_source_files(
+                index_file=self.index, force_reindex=False
             )
 
         self.selection = self.select_samples_from_index()
