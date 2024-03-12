@@ -12,6 +12,8 @@ logger = logging.getLogger(__name__)
 def subtract_baseline_per_region(spec: SpectrumData, split_spectrum: SplitSpectrum):
     ramanshift = spec.ramanshift
     intensity = spec.intensity
+    if not (ramanshift.any() and intensity.any()):
+        return intensity, None
     region_name = spec.region_name
     label = spec.label
     regions_data = split_spectrum.spec_regions
@@ -27,7 +29,6 @@ def subtract_baseline_per_region(spec: SpectrumData, split_spectrum: SplitSpectr
     ):
         selected_intensity = regions_data[region_name_first_order[0]].intensity
         region_config = region_limits["first_order"]
-
     bl_linear = linregress(
         ramanshift[[0, -1]],
         [
