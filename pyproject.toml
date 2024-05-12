@@ -37,6 +37,7 @@ dependencies = [
 	"loguru>=0.7",
 	"typer[all]",
 	"mpire[dill]~=2.10.0",
+	"tomli-w>=1.0.0"
 ]
 
 [project.optional-dependencies]
@@ -89,7 +90,13 @@ addopts = [
     "-ra -q",
     "--cov",
     "--cov-report term-missing html xml annotate",
+	"--strict-markers"
 ]
+markers = [
+    "slow: marks tests as slow (deselect with '-m \"not slow\"')",
+    "serial",
+]
+
 testpaths = [
     "tests",
 ]
