@@ -5,6 +5,8 @@ import pandas as pd
 import numpy as np
 from tablib import Dataset
 
+from raman_fitting.imports.spectrum.datafile_schema import SpectrumDataKeys
+
 logger = logging.getLogger(__name__)
 
 
@@ -13,7 +15,7 @@ class ValidateSpectrumValues:
     spectrum_key: str
     min: float
     max: float
-    len: int
+    len: int | None = None
 
     def validate_min(self, spectrum_data: pd.DataFrame):
         data_min = min(spectrum_data[self.spectrum_key])
@@ -24,6 +26,8 @@ class ValidateSpectrumValues:
         return data_max <= self.max
 
     def validate_len(self, spectrum_data: pd.DataFrame):
+        if self.len is None:
+            return True
         data_len = len(spectrum_data)
         return np.isclose(data_len, self.len, rtol=0.1)
 
@@ -51,3 +55,13 @@ def validate_spectrum_keys_expected_values(
         logger.warning(
             f"The {expected_values.spectrum_key} of this spectrum does not match the expected values {expected_values}"
         )
+
+
+spectrum_keys_expected_values = {
+    SpectrumDataKeys.ramanshift: ValidateSpectrumValues(
+        spectrum_key=SpectrumDataKeys.ramanshift, min=-95, max=3650
+    ),
+    SpectrumDataKeys.intensity: ValidateSpectrumValues(
+        spectrum_key=SpectrumDataKeys.intensity, min=0, max=1e5
+    ),
+}

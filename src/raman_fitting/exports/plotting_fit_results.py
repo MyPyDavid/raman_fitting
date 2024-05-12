@@ -18,6 +18,7 @@ from raman_fitting.delegating.models import AggregatedSampleSpectrumFitResult
 
 from loguru import logger
 
+from .models import ExportResultSet, ExportResult
 
 matplotlib.rcParams.update({"font.size": 14})
 FIT_REPORT_MIN_CORREL = 0.7
@@ -29,7 +30,8 @@ def fit_spectrum_plot(
     export_paths: ExportPathSettings | None = None,
     plot_annotation=True,
     plot_residuals=True,
-):  # pragma: no cover
+) -> ExportResultSet:  # pragma: no cover
+    export_results = ExportResultSet()
     for region_name, region_aggregated_spectrum in aggregated_spectra.items():
         sources = region_aggregated_spectrum.aggregated_spectrum.sources
         sample = sources[0].file_info.sample
@@ -51,7 +53,7 @@ def fit_spectrum_plot(
                 f"Starting to plot for {sample.id}, {region_name} {model_name}."
             )
 
-            prepare_combined_spectrum_fit_result_plot(
+            export_result = prepare_combined_spectrum_fit_result_plot(
                 current_model,
                 second_model,
                 sample,
@@ -59,6 +61,9 @@ def fit_spectrum_plot(
                 plot_annotation=plot_annotation,
                 plot_residuals=plot_residuals,
             )
+            if export_result is not None:
+                export_results += export_result
+    return export_results
 
 
 def prepare_combined_spectrum_fit_result_plot(
@@ -68,7 +73,7 @@ def prepare_combined_spectrum_fit_result_plot(
     export_paths: ExportPathSettings,
     plot_annotation=True,
     plot_residuals=True,
-):
+) -> ExportResult:
     first_model_name = first_model.model.name
 
     plt.figure(figsize=(28, 24))
@@ -100,6 +105,7 @@ def prepare_combined_spectrum_fit_result_plot(
     set_axes_labels_and_legend(ax)
 
     plot_special_si_components(ax, first_model)
+    result = None
     if export_paths is not None:
         savepath = export_paths.plots.joinpath(f"Model_{first_model_name}").with_suffix(
             ".png"
@@ -110,8 +116,13 @@ def prepare_combined_spectrum_fit_result_plot(
             bbox_extra_artists=_bbox_artists,
             bbox_inches="tight",
         )
-        logger.debug(f"Plot saved to {savepath}")
+        _msg = (
+            f"Plot saved with prepare_combined_spectrum_fit_result_plot to {savepath}"
+        )
+        logger.debug(_msg)
+        result = ExportResult(target=savepath, message=_msg)
     plt.close()
+    return result
 
 
 def fit_plot_first(

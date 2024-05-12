@@ -1,6 +1,6 @@
 """Indexer for raman data files"""
 
-from itertools import filterfalse, groupby
+from itertools import groupby
 from pathlib import Path
 from typing import List, Sequence, TypeAlias
 
@@ -22,7 +22,7 @@ from raman_fitting.imports.files.utils import (
 from raman_fitting.imports.models import RamanFileInfo
 from tablib import Dataset
 
-from raman_fitting.imports.spectrum import SPECTRUM_FILETYPE_PARSERS
+from raman_fitting.imports.spectrum.datafile_parsers import SPECTRUM_FILETYPE_PARSERS
 
 RamanFileInfoSet: TypeAlias = Sequence[RamanFileInfo]
 
@@ -121,26 +121,32 @@ class IndexSelector(BaseModel):
         if not any([self.sample_groups, self.sample_ids]):
             self.selection = rf_index
             logger.debug(
-                f"{self.__class__.__qualname__} selected {len(self.selection)} of {len(rf_index)}. "
+                f"{self.__class__.__qualname__} did not get any query parameters, selected {len(self.selection)} of {len(rf_index)}. "
             )
             return self
-        else:
+
+        _pre_selected_samples = {i.sample.id for i in rf_index}
+        rf_selection_index = []
+        if self.sample_groups:
             rf_index_groups = list(
                 filter(lambda x: x.sample.group in self.sample_groups, rf_index)
             )
             _pre_selected_samples = {i.sample.id for i in rf_index_groups}
-            selected_sample_ids = filterfalse(
-                lambda x: x in _pre_selected_samples, self.sample_ids
+            rf_selection_index += rf_index_groups
+
+        if self.sample_ids:
+            selected_sample_ids = list(
+                filter(lambda x: x in self.sample_ids, _pre_selected_samples)
             )
             rf_index_samples = list(
                 filter(lambda x: x.sample.id in selected_sample_ids, rf_index)
             )
-            rf_selection_index = rf_index_groups + rf_index_samples
-            self.selection = rf_selection_index
-            logger.debug(
-                f"{self.__class__.__qualname__} selected {len(self.selection)} of {len(rf_index)}. "
-            )
-            return self
+            rf_selection_index += rf_index_samples
+        self.selection = rf_selection_index
+        logger.debug(
+            f"{self.__class__.__qualname__} selected {len(self.selection)} of {len(rf_index)}. "
+        )
+        return self
 
 
 def groupby_sample_group(index: RamanFileInfoSet):
