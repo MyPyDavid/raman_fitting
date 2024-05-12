@@ -1,4 +1,4 @@
-from lmfit.parameter import Parameter
+from lmfit import Parameter
 
 
 def join_prefix_suffix(prefix: str, suffix: str) -> str:

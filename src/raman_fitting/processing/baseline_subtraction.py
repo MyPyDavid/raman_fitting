@@ -1,12 +1,10 @@
-import logging
-
 import numpy as np
 from scipy.stats import linregress
 
 from ..models.splitter import SplitSpectrum
 from ..models.spectrum import SpectrumData
 
-logger = logging.getLogger(__name__)
+from loguru import logger
 
 
 def subtract_baseline_per_region(spec: SpectrumData, split_spectrum: SplitSpectrum):
@@ -48,6 +46,12 @@ def subtract_baseline_from_split_spectrum(
     label = "blcorr" if label is None else label
     for region_name, spec in split_spectrum.spec_regions.items():
         blcorr_int, blcorr_lin = subtract_baseline_per_region(spec, split_spectrum)
+        if any(np.isnan(i) for i in blcorr_int):
+            logger.warning(
+                f"Subtract baseline failed for {region_name} because of nan."
+            )
+            continue
+
         new_label = f"{label}_{spec.label}" if label not in spec.label else spec.label
         spec = SpectrumData(
             **{
