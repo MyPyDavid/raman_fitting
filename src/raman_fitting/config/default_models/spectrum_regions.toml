@@ -1,10 +1,15 @@
 [spectrum]
 
 [spectrum.regions]
-full = {"min" = 200, "max" = 3600}
-full_first_and_second = {"min" = 800, "max" = 3500}
-low = {"min" = 150, "max" = 850, "extra_margin" = 10}
-first_order = {"min" = 900, "max" = 2000}
-mid = {"min" = 1850, "max" = 2150, "extra_margin" = 10}
-normalization = {"min" = 1500, "max" = 1675, "extra_margin" = 10}
-second_order = {"min" = 2150, "max" = 3380}
+
+[spectrum.regions.full]
+limits = {"min" = 200, "max" = 3600}
+
+[spectrum.regions.full_first_and_second]
+limits = {"min" = 800, "max" = 3500}
+
+[spectrum.regions.low]
+limits = {"min" = 150, "max" = 850, "extra_margin" = 10}
+
+[spectrum.regions.mid]
+limits = {"min" = 1850, "max" = 2150, "extra_margin" = 10}

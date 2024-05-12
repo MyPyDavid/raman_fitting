@@ -1,30 +1,35 @@
-[normalization]
+[spectrum]
 
-[normalization.models]
+[spectrum.regions.normalization.limits]
+min = 1500
+max = 1675
+extra_margin = 10
+
+[spectrum.regions.normalization.models]
 norm = "norm_G+norm_D"
 
-[normalization.peaks]
+[spectrum.regions.normalization.peaks]
 
-[normalization.peaks.norm_G]
+[spectrum.regions.normalization.peaks.norm_G]
 docstring = """
 G_peak used for normalization
 """
 peak_name = "norm_G"
 peak_type = "Lorentzian"
 is_for_normalization = true
-[normalization.peaks.norm_G.param_hints]
+[spectrum.regions.normalization.peaks.norm_G.param_hints]
 center = {"value" = 1581, "min" = 1500, "max" = 1600}
 sigma = {"value" = 40, "min" = 1e-05, "max" = 1e3}
 amplitude = {"value" = 8e4, "min" = 1e2}
 
-[normalization.peaks.norm_D]
+[spectrum.regions.normalization.peaks.norm_D]
 docstring = """
 D_peak for normalization
 """
 peak_name = "norm_D"
 peak_type = "Lorentzian"
 is_for_normalization = true
-[normalization.peaks.norm_D.param_hints]
+[spectrum.regions.normalization.peaks.norm_D.param_hints]
 center = {"value" = 1350, "min" = 1300, "max" = 1400}
 sigma = {"value" = 90, "min" = 1e-05}
 amplitude = {"value" = 10e5, "min" = 1e2}
