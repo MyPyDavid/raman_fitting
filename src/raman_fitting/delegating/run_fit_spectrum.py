@@ -4,7 +4,7 @@ from pydantic import ValidationError
 
 from raman_fitting.delegating.run_fit_multi import run_fit_multiprocessing
 from raman_fitting.models.spectrum import SpectrumData
-from raman_fitting.types import LMFitModelCollection
+from raman_fitting.models.deconvolution.base_model import LMFitModelCollection
 from raman_fitting.delegating.models import AggregatedSampleSpectrumFitResult
 from raman_fitting.delegating.pre_processing import (
     prepare_aggregated_spectrum_from_files,

@@ -29,7 +29,7 @@ from raman_fitting.delegating.models import (
 from raman_fitting.delegating.pre_processing import (
     prepare_aggregated_spectrum_from_files,
 )
-from raman_fitting.types import LMFitModelCollection
+from raman_fitting.models.deconvolution.base_model import LMFitModelCollection
 from raman_fitting.delegating.run_fit_spectrum import run_fit_over_selected_models
 
 
@@ -78,7 +78,12 @@ class MainDelegator:
             )
 
         self.selection = self.select_samples_from_index()
-        self.selected_models = self.select_models_from_provided_models()
+        self.selected_models = select_models_from_provided_models(
+            region_names=self.fit_model_region_names,
+            model_names=self.fit_model_specific_names,
+            provided_models=self.lmfit_models,
+        )
+
         self.main_run()
         if self.export:
             self.exports = self.call_export_manager()
@@ -105,25 +110,6 @@ class MainDelegator:
         return exports
 
     # region_names:List[RegionNames], model_names: List[str]
-    def select_models_from_provided_models(self) -> LMFitModelCollection:
-        selected_region_names = self.fit_model_region_names
-        selected_model_names = self.fit_model_specific_names
-        selected_models = {}
-        for region_name, all_region_models in self.lmfit_models.items():
-            if region_name not in selected_region_names:
-                continue
-            if not selected_model_names:
-                selected_models[region_name] = all_region_models
-                continue
-            selected_region_models = {}
-            for mod_name, mod_val in all_region_models.items():
-                if mod_name not in selected_model_names:
-                    continue
-                selected_region_models[mod_name] = mod_val
-
-            selected_models[region_name] = selected_region_models
-        return selected_models
-
     def select_fitting_model(
         self, region_name: RegionNames, model_name: str
     ) -> BaseLMFitModel:
@@ -187,6 +173,29 @@ def get_results_over_selected_models(
         )
         results[region_name] = fit_region_results
     return results
+
+
+def select_models_from_provided_models(
+    region_names: Sequence[RegionNames] | None = None,
+    model_names: Sequence[str] | None = None,
+    provided_models: LMFitModelCollection | None = None,
+) -> LMFitModelCollection:
+    """Select certain models from a provided collection"""
+    selected_models = {}
+    for region_name, all_region_models in provided_models.items():
+        if region_name not in region_names:
+            continue
+        if not model_names:
+            selected_models[region_name] = all_region_models
+            continue
+        selected_region_models = {}
+        for mod_name, mod_val in all_region_models.items():
+            if mod_name not in model_names:
+                continue
+            selected_region_models[mod_name] = mod_val
+
+        selected_models[region_name] = selected_region_models
+    return selected_models
 
 
 def make_examples():
