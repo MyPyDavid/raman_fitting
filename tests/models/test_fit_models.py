@@ -1,4 +1,7 @@
 from raman_fitting.imports.spectrumdata_parser import SpectrumReader
+from raman_fitting.models.deconvolution.spectrum_regions import (
+    get_default_regions_from_toml_files,
+)
 from raman_fitting.models.fit_models import SpectrumFitModel
 from raman_fitting.processing.post_processing import SpectrumProcessor
 
@@ -7,8 +10,11 @@ def test_fit_model(example_files, default_models_first_order):
     file = [i for i in example_files if "_pos4" in i.stem][0]
 
     specread = SpectrumReader(file)
+    region_limits = get_default_regions_from_toml_files()
 
-    spectrum_processor = SpectrumProcessor(specread.spectrum)
+    spectrum_processor = SpectrumProcessor(
+        specread.spectrum, region_limits=region_limits
+    )
     clean_spec_1st_order = spectrum_processor.clean_spectrum.spec_regions[
         "savgol_filter_raw_region_first_order"
     ]

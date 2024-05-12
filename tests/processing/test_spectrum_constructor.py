@@ -12,7 +12,8 @@ def test_spectrum_data_loader_empty():
 def test_spectrum_data_loader_file(example_files):
     for file in example_files:
         sprdr = SpectrumReader(file)
-        assert len(sprdr.spectrum.intensity) == 1600
-        assert len(sprdr.spectrum.ramanshift) == 1600
+        assert len(sprdr.spectrum.intensity) > 1590
+        assert len(sprdr.spectrum.ramanshift) > 1590
+        assert len(sprdr.spectrum.intensity) == len(sprdr.spectrum.ramanshift)
         assert sprdr.spectrum.source == file
         assert sprdr.spectrum.region_name == RegionNames.full

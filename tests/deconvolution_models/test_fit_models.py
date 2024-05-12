@@ -8,11 +8,13 @@ from raman_fitting.processing.post_processing import SpectrumProcessor
 
 
 @pytest.fixture
-def clean_spec(example_files) -> None:
+def clean_spec(example_files, default_regions) -> None:
     file = [i for i in example_files if "_pos4" in i.stem][0]
     specread = SpectrumReader(file)
 
-    spectrum_processor = SpectrumProcessor(specread.spectrum)
+    spectrum_processor = SpectrumProcessor(
+        spectrum=specread.spectrum, region_limits=default_regions
+    )
     clean_spec_1st_order = spectrum_processor.clean_spectrum.spec_regions[
         "savgol_filter_raw_region_first_order"
     ]
@@ -23,7 +25,6 @@ def clean_spec(example_files) -> None:
 def test_fit_first_order(clean_spec, default_models):
     spectrum = clean_spec
     test_component = "center"
-
     for model_name, test_model in default_models["first_order"].items():
         # with subTest(model_name=model_name, test_model=test_model):
         spec_fit = SpectrumFitModel(
