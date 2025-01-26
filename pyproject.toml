@@ -16,18 +16,19 @@ classifiers = [
 	"Natural Language :: English",
 	"Programming Language :: Python",
 	"Programming Language :: Python :: 3 :: Only",
-	"Programming Language :: Python :: 3.11",
+	"Programming Language :: Python :: 3.12",
 	"Programming Language :: Python :: Implementation :: CPython",
 	"Programming Language :: Python :: Implementation :: PyPy",
 	"Intended Audience :: Science/Research",
 	"Topic :: Scientific/Engineering :: Physics",
 	"Topic :: Scientific/Engineering :: Chemistry",
 ]
+requires-python = ">=3.12"
 dynamic = ["version"]
 dependencies = [
 	"pandas~=2.1.2",
-	"scipy~=1.11.3",
-	"lmfit~=1.2.2",
+	"scipy~=1.15.1",
+	"lmfit~=1.3.2",
 	"matplotlib~=3.8.0",
 	"numpy~=1.26.1",
 	"tablib~=3.5.0",
@@ -35,7 +36,7 @@ dependencies = [
 	"pydantic-settings>=2.1",
 	"pydantic_numpy>=4.1",
 	"loguru>=0.7",
-	"typer[all]",
+	"typer>=0.13.1",
 	"mpire[dill]~=2.10.0",
 	"tomli-w>=1.0.0"
 ]
