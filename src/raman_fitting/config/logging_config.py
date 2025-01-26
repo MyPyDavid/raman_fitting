@@ -20,7 +20,7 @@ log_format = (
 # Define basic configuration
 logging.basicConfig(
     # Define logging level
-    level=logging.DEBUG,
+    level=logging.INFO,
     # Define the format of log messages
     format=log_format,
     # Provide the filename to store the log messages

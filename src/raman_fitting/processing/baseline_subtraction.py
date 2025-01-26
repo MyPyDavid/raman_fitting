@@ -12,6 +12,11 @@ def subtract_baseline_per_region(spec: SpectrumData, split_spectrum: SplitSpectr
     intensity = spec.intensity
     if not (ramanshift.any() and intensity.any()):
         return intensity, None
+    if spec.region_name is None:
+        raise ValueError("Missing spectrum region name.")
+    if split_spectrum.spec_regions is None:
+        raise ValueError("Missing spectrum regions data.")
+
     region_name = spec.region_name
     label = spec.label
     regions_data = split_spectrum.spec_regions
@@ -39,10 +44,15 @@ def subtract_baseline_per_region(spec: SpectrumData, split_spectrum: SplitSpectr
 
 
 def subtract_baseline_from_split_spectrum(
-    split_spectrum: SplitSpectrum = None, label=None
+    split_spectrum: SplitSpectrum | None = None, label=None
 ) -> SplitSpectrum:
-    _bl_spec_regions = {}
-    _info = {}
+    if split_spectrum is None:
+        raise ValueError("Missing split spectrum.")
+    if split_spectrum.spec_regions is None:
+        raise ValueError("Missing regions of split spectrum.")
+
+    _bl_spec_regions: dict[str, SpectrumData] = {}
+    _info: dict = {}
     label = "blcorr" if label is None else label
     for region_name, spec in split_spectrum.spec_regions.items():
         blcorr_int, blcorr_lin = subtract_baseline_per_region(spec, split_spectrum)

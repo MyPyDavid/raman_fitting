@@ -27,12 +27,9 @@ except Exception:
 import sys
 import warnings
 
-from loguru import logger
-
 # This code is written for Python 3.11 and higher
 if sys.version_info.major < 3 and sys.version_info.minor < 11:
-    logger.error(f"{__package_name__} requires Python 3.11 or higher.")
-    sys.exit(1)
+    raise RuntimeError(f"{__package_name__} requires Python 3.11 or higher.")
 
 # Let users know if they're missing any hard dependencies
 hard_dependencies = ("numpy", "pandas", "scipy", "matplotlib", "lmfit", "pydantic")

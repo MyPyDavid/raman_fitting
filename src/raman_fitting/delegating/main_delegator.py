@@ -10,6 +10,7 @@ from raman_fitting.config.path_settings import (
 )
 from raman_fitting.config import settings
 
+from raman_fitting.imports.files.file_finder import FileFinder
 from raman_fitting.imports.models import RamanFileInfo
 
 from raman_fitting.models.deconvolution.base_model import BaseLMFitModel
@@ -63,11 +64,19 @@ class MainDelegator:
 
     results: Dict[str, Any] | None = field(default=None, init=False)
     export: bool = True
+    suffixes: List[str] = field(default_factory=lambda: ["*.txt"])
+    exclusions: List[str] = field(default_factory=lambda: ["."])
 
     def __post_init__(self):
         run_mode_paths = initialize_run_mode_paths(self.run_mode)
         if self.index is None:
-            raman_files = run_mode_paths.dataset_dir.glob("*.txt")
+            file_finder = FileFinder(
+                directory=run_mode_paths.dataset_dir,
+                suffixes=self.suffixes,
+                exclusions=self.exclusions,
+            )
+
+            raman_files = file_finder.files
             index_file = run_mode_paths.index_file
             self.index = initialize_index_from_source_files(
                 files=raman_files, index_file=index_file, force_reindex=True

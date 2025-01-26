@@ -40,10 +40,12 @@ available_filters = {
 
 
 def filter_spectrum(
-    spectrum: SpectrumData = None, filter_name="savgol_filter"
+    spectrum: SpectrumData | None = None, filter_name="savgol_filter"
 ) -> SpectrumData:
     if filter_name not in available_filters:
         raise ValueError(f"Chosen filter {filter_name} not available.")
+    if spectrum is None:
+        raise ValueError("Spectrum is None.")
 
     filter_class = available_filters[filter_name]
     filtered_intensity = filter_class.process_intensity(spectrum.intensity)

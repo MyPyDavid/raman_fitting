@@ -8,6 +8,7 @@ from loguru import logger
 from raman_fitting.config.load_config_from_toml import dump_default_config
 from raman_fitting.config.path_settings import RunModes, INDEX_FILE_NAME
 from raman_fitting.delegating.main_delegator import MainDelegator
+from raman_fitting.imports.files.file_finder import FileFinder
 from raman_fitting.imports.files.file_indexer import initialize_index_from_source_files
 from raman_fitting.imports.spectrum.datafile_parsers import SPECTRUM_FILETYPE_PARSERS
 from raman_fitting.models.deconvolution.spectrum_regions import RegionNames
@@ -48,9 +49,12 @@ state = {"verbose": False}
 
 
 def current_dir_prepare_index_kwargs():
-    source_files = []
-    for suffix in SPECTRUM_FILETYPE_PARSERS.keys():
-        source_files += list(Path.cwd().rglob(f"*{suffix}"))
+    file_finder = FileFinder(
+        directory=Path.cwd(),
+        suffixes=SPECTRUM_FILETYPE_PARSERS.keys(),
+        exclusions=["."],
+    )
+    source_files = file_finder.files
     index_file = LOCAL_INDEX_FILE
     force_reindex = True
     return source_files, index_file, force_reindex
@@ -140,7 +144,6 @@ def make(
     force_reindex: Annotated[bool, typer.Option("--force-reindex")] = False,
 ):
     if make_type is None:
-        print("No make type args passed")
         raise typer.Exit()
     if index_file:
         index_file = index_file.resolve()
