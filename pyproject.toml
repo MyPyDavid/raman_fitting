@@ -88,9 +88,12 @@ minversion = "7.0"
 pythonpath = "src"
 addopts = [
     "--import-mode=importlib",
-    "-ra -q",
-    "--cov",
-    "--cov-report term-missing html xml annotate",
+    "-ra",
+	"-q",
+	"--cov=src",  # Ensure the correct path is specified here
+    "--cov-report=term-missing",
+    "--cov-report=html",
+    "--cov-report=xml",
 	"--strict-markers"
 ]
 markers = [
