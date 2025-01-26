@@ -64,7 +64,7 @@ class MainDelegator:
 
     results: Dict[str, Any] | None = field(default=None, init=False)
     export: bool = True
-    suffixes: List[str] = field(default_factory=lambda: ["*.txt"])
+    suffixes: List[str] = field(default_factory=lambda: [".txt"])
     exclusions: List[str] = field(default_factory=lambda: ["."])
 
     def __post_init__(self):
