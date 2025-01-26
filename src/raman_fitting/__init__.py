@@ -42,3 +42,9 @@ if missing_dependencies:
     raise ImportError(f"Missing required dependencies {missing_dependencies}")
 
 del dependencies, dependency, missing_dependencies
+
+from loguru import logger  # noqa: E402
+
+logger.disable("raman_fitting")
+
+from .delegating.main_delegator import make_examples  # noqa: E402, F401

@@ -3,10 +3,10 @@ from typing_extensions import Annotated
 
 from pathlib import Path
 from enum import StrEnum, auto
-from loguru import logger
 
 from raman_fitting.config.load_config_from_toml import dump_default_config
 from raman_fitting.config.path_settings import RunModes, INDEX_FILE_NAME
+from raman_fitting.config.logging_config import logger
 from raman_fitting.delegating.main_delegator import MainDelegator
 from raman_fitting.imports.files.file_finder import FileFinder
 from raman_fitting.imports.files.file_indexer import initialize_index_from_source_files
@@ -118,7 +118,7 @@ def run(
                     "4peaks",
                     "2nd_4peaks",
                 ],
-                "sample_groups": ["test"],
+                "select_sample_groups": ["test"],
             }
         )
 
