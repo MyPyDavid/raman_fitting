@@ -77,7 +77,8 @@ class SpectrumFitModel(BaseModel):
         params_ratio_vars = calculate_ratio_of_unique_vars_in_results(
             param_results, raise_exception=False
         )
-        self.param_results["ratios"] = params_ratio_vars
+        param_results["ratios"] = params_ratio_vars
+        self.param_results = param_results
 
 
 def call_fit_on_model(

@@ -38,10 +38,10 @@ def fit_spectrum_plot(
 
         second_model = None
         if (
-            region_name == RegionNames.first_order
-            and RegionNames.second_order in aggregated_spectra
+            region_name == RegionNames.FIRST_ORDER
+            and RegionNames.SECOND_ORDER in aggregated_spectra
         ):
-            second_order = aggregated_spectra[RegionNames.second_order]
+            second_order = aggregated_spectra[RegionNames.SECOND_ORDER]
             second_model = second_order.fit_model_results.get(
                 DEFAULT_SECOND_ORDER_MODEL
             )

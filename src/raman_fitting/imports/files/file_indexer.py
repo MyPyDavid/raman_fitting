@@ -181,8 +181,8 @@ def parse_dataset_to_index(dataset: Dataset) -> RamanFileInfoSet:
 
 class IndexSelector(BaseModel):
     raman_files: Sequence[RamanFileInfo]
-    sample_ids: List[str] = Field(default_factory=list)
-    sample_groups: List[str] = Field(default_factory=list)
+    sample_ids: Sequence[str] = Field(default_factory=list)
+    sample_groups: Sequence[str] = Field(default_factory=list)
     selection: Sequence[RamanFileInfo] = Field(default_factory=list)
 
     @model_validator(mode="after")

@@ -47,22 +47,23 @@ class MainDelegator:
     Creates plots and files in the config RESULTS directory.
     """
 
-    run_mode: RunModes | None = None
-    use_multiprocessing: bool = False
+    run_mode: RunModes | None = field(default=None)
+    use_multiprocessing: bool = field(default=False, repr=False)
     lmfit_models: LMFitModelCollection = field(
-        default_factory=lambda: settings.default_models
+        default_factory=lambda: settings.default_models,
+        repr=False,
     )
     fit_model_region_names: Sequence[RegionNames] = field(
-        default=(RegionNames.first_order, RegionNames.second_order)
+        default=(RegionNames.FIRST_ORDER, RegionNames.SECOND_ORDER)
     )
     fit_model_specific_names: Sequence[str] | None = None
-    sample_ids: Sequence[str] = field(default_factory=list)
-    sample_groups: Sequence[str] = field(default_factory=list)
-    index: RamanFileIndex | None = None
+    select_sample_ids: Sequence[str] = field(default_factory=list)
+    select_sample_groups: Sequence[str] = field(default_factory=list)
+    index: RamanFileIndex | None = field(default=None, repr=False)
     selection: Sequence[RamanFileInfo] = field(init=False)
     selected_models: Sequence[RamanFileInfo] = field(init=False)
 
-    results: Dict[str, Any] | None = field(default=None, init=False)
+    results: Dict[str, Any] | None = field(default=None, init=False, repr=False)
     export: bool = True
     suffixes: List[str] = field(default_factory=lambda: [".txt"])
     exclusions: List[str] = field(default_factory=lambda: ["."])
@@ -98,14 +99,17 @@ class MainDelegator:
             self.exports = self.call_export_manager()
 
     def select_samples_from_index(self) -> Sequence[RamanFileInfo]:
-        index = self.index
+        if self.index is None:
+            raise ValueError("Index was not initialized")
+        elif not self.index.raman_files:
+            logger.info("No raman files were found in the index.")
+            return []
+
         # breakpoint()
         index_selector = IndexSelector(
-            **dict(
-                raman_files=index.raman_files,
-                sample_groups=self.sample_groups,
-                sample_ids=self.sample_ids,
-            )
+            raman_files=self.index.raman_files,
+            sample_groups=self.select_sample_groups,
+            sample_ids=self.select_sample_ids,
         )
         selection = index_selector.selection
         if not selection:
@@ -113,7 +117,6 @@ class MainDelegator:
         return selection
 
     def call_export_manager(self):
-        # breakpoint()
         export = ExportManager(self.run_mode, self.results)
         exports = export.export_files()
         return exports
@@ -170,6 +173,12 @@ def get_results_over_selected_models(
 ) -> Dict[RegionNames, AggregatedSampleSpectrumFitResult]:
     results = {}
     for region_name, region_grp in models.items():
+        try:
+            region_name = RegionNames(region_name)
+        except ValueError as exc:
+            logger.error(f"Region name {region_name} not found. {exc}")
+            continue
+
         aggregated_spectrum = prepare_aggregated_spectrum_from_files(
             region_name, raman_files
         )
@@ -185,14 +194,14 @@ def get_results_over_selected_models(
 
 
 def select_models_from_provided_models(
-    region_names: Sequence[RegionNames] | None = None,
+    region_names: Sequence[RegionNames],
+    provided_models: LMFitModelCollection,
     model_names: Sequence[str] | None = None,
-    provided_models: LMFitModelCollection | None = None,
 ) -> LMFitModelCollection:
     """Select certain models from a provided collection"""
     selected_models = {}
     for region_name, all_region_models in provided_models.items():
-        if region_name not in region_names:
+        if region_name not in {i.value for i in region_names}:
             continue
         if not model_names:
             selected_models[region_name] = all_region_models

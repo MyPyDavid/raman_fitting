@@ -1,5 +1,3 @@
-from typing import List, Dict
-
 from pydantic import ValidationError
 
 from raman_fitting.delegating.run_fit_multi import run_fit_multiprocessing
@@ -17,12 +15,18 @@ from loguru import logger
 
 
 def run_fit_over_selected_models(
-    raman_files: List[RamanFileInfo],
+    raman_files: list[RamanFileInfo],
     models: LMFitModelCollection,
     use_multiprocessing: bool = False,
-) -> Dict[RegionNames, AggregatedSampleSpectrumFitResult]:
+) -> dict[RegionNames, AggregatedSampleSpectrumFitResult]:
     results = {}
     for region_name, model_region_grp in models.items():
+        try:
+            region_name = RegionNames(region_name)
+        except ValueError as exc:
+            logger.error(f"Region name {region_name} not found. {exc}")
+            continue
+
         aggregated_spectrum = prepare_aggregated_spectrum_from_files(
             region_name, raman_files
         )
@@ -46,10 +50,10 @@ def run_fit_over_selected_models(
 
 def prepare_spec_fit_regions(
     spectrum: SpectrumData, model_region_grp
-) -> List[SpectrumFitModel]:
+) -> list[SpectrumFitModel]:
     spec_fits = []
     for model_name, model in model_region_grp.items():
-        region = model.region_name.name
+        region = model.region_name.value
         try:
             spec_fit = SpectrumFitModel(spectrum=spectrum, model=model, region=region)
             spec_fits.append(spec_fit)
@@ -59,7 +63,7 @@ def prepare_spec_fit_regions(
     return spec_fits
 
 
-def run_fit_loop(spec_fits: List[SpectrumFitModel]) -> Dict[str, SpectrumFitModel]:
+def run_fit_loop(spec_fits: list[SpectrumFitModel]) -> dict[str, SpectrumFitModel]:
     fit_model_results = {}
     for spec_fit in spec_fits:
         #  include optional https://lmfit.github.io/lmfit-py/model.html#saving-and-loading-modelresults

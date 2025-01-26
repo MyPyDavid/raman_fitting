@@ -35,10 +35,22 @@ def get_default_regions_from_toml_files() -> Dict[str, SpectrumRegionLimits]:
     return sorted_default_regions
 
 
-DEFAULT_REGION_NAME_KEYS: str = " ".join(get_default_regions_from_toml_files().keys())
-
-RegionNames = StrEnum(
-    "RegionNames",
-    DEFAULT_REGION_NAME_KEYS,
-    module=__name__,
+# Assuming get_default_regions_from_toml_files() returns a dictionary
+DEFAULT_REGION_NAMES_FROM_TOML = get_default_regions_from_toml_files().keys()
+DEFAULT_REGION_NAME_FALLBACK = {"full", "first_order", "second_order"}
+DEFAULT_REGION_NAME_KEYS = (
+    DEFAULT_REGION_NAMES_FROM_TOML or DEFAULT_REGION_NAME_FALLBACK
 )
+
+
+class RegionNamesMeta(type(StrEnum)):
+    def __new__(metacls, cls, bases, classdict):
+        for key in DEFAULT_REGION_NAME_KEYS:
+            classdict[key.upper()] = key
+        return super().__new__(metacls, cls, bases, classdict)
+
+
+class RegionNames(StrEnum, metaclass=RegionNamesMeta):
+    @classmethod
+    def choices(cls) -> list[str]:
+        return [member.value for member in cls]

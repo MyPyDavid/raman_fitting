@@ -43,7 +43,7 @@ class SplitSpectrum(BaseModel):
             raise ValueError("Missing spectrum regions.")
         region_name = RegionNames(region_name)
         spec_region_keys = [
-            i for i in self.spec_regions.keys() if region_name.name in i
+            i for i in self.spec_regions.keys() if region_name.value in i
         ]
         if len(spec_region_keys) != 1:
             raise ValueError(f"Key {region_name} not in {spec_region_keys}")

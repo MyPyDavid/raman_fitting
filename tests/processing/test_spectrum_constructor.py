@@ -16,4 +16,4 @@ def test_spectrum_data_loader_file(example_files):
         assert len(sprdr.spectrum.ramanshift) > 1590
         assert len(sprdr.spectrum.intensity) == len(sprdr.spectrum.ramanshift)
         assert sprdr.spectrum.source == file
-        assert sprdr.spectrum.region_name == RegionNames.full
+        assert sprdr.spectrum.region_name == RegionNames.FULL
