@@ -35,8 +35,10 @@ def get_default_regions_from_toml_files() -> Dict[str, SpectrumRegionLimits]:
     return sorted_default_regions
 
 
+DEFAULT_REGION_NAME_KEYS: str = " ".join(get_default_regions_from_toml_files().keys())
+
 RegionNames = StrEnum(
     "RegionNames",
-    " ".join(get_default_regions_from_toml_files().keys()),
+    DEFAULT_REGION_NAME_KEYS,
     module=__name__,
 )

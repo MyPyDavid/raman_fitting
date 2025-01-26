@@ -22,7 +22,7 @@ class SpectrumFitModel(BaseModel):
     model: BaseLMFitModel
     region: RegionNames
     fit_kwargs: Dict = Field(default_factory=dict, repr=False)
-    fit_result: ModelResult = Field(None, init_var=False)
+    fit_result: ModelResult = Field(None, init_var=False)  # TODO move to property
     param_results: Dict = Field(default_factory=dict)
     elapsed_time: float = Field(0, init_var=False, repr=False)
 
