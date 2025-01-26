@@ -13,7 +13,7 @@ def write_dataset_to_file(file: Path, dataset: Dataset) -> None:
     else:
         with open(file, "wb", encoding="utf-8") as f:
             f.write(dataset.export(file.suffix))
-    logger.debug(f"Wrote dataset {len(dataset)} to {file}")
+    logger.debug(f"Wrote dataset of len {len(dataset)} to {file}")
 
 
 def load_dataset_from_file(file) -> Dataset:

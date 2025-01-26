@@ -1,4 +1,4 @@
-from typing import List, Tuple, Optional, Dict
+from typing import Tuple, Optional, Dict
 from pathlib import Path
 
 from .models import SampleMetaData
@@ -34,21 +34,31 @@ def parse_string_to_sample_id_and_position(
     split = string.split(first_sep_match)
     _lensplit = len(split)
 
+    position: int = 0
+    sample_id: str = ""
     if _lensplit == 0:
-        sample_id, position = split[0], 0
+        sample_id = split[0]
     elif len(split) == 1:
-        sample_id, position = split[0], 0
+        sample_id = split[0]
     elif len(split) == 2:
         sample_id = split[0]
         _pos_strnum = "".join(i for i in split[1] if i.isnumeric())
         if _pos_strnum:
             position = int(_pos_strnum)
         else:
-            position = split[1]
+            try:
+                position = int(split[1])
+            except ValueError:
+                pass
     elif len(split) >= 3:
         sample_id = "_".join(split[0:-1])
-        position = int("".join(filter(str.isdigit, split[-1])))
-    position = position or 0
+        _digits = "".join(filter(str.isdigit, split[-1]))
+        if _digits:
+            try:
+                position = int(_digits)
+            except ValueError:
+                pass
+
     return (sample_id, position)
 
 
@@ -73,7 +83,7 @@ def overwrite_sample_id_from_mapper(sample_id: str, mapper: dict) -> str:
 
 
 def overwrite_sample_group_id_from_parts(
-    parts: List[str], sample_group_id: str, mapper: dict
+    parts: list[str] | tuple[str, ...], sample_group_id: str, mapper: dict
 ) -> str:
     for k, val in mapper.items():
         if k in parts:
@@ -101,7 +111,4 @@ def extract_sample_metadata_from_filepath(
             parts, sample_group_id, sample_grp_mapper
         )
 
-    sample = SampleMetaData(
-        **{"id": sample_id, "group": sample_group_id, "position": position}
-    )
-    return sample
+    return SampleMetaData(id=sample_id, group=sample_group_id, position=position)

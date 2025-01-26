@@ -29,10 +29,10 @@ class SpectrumReader:
 
     filepath: Path | str
 
-    spectrum: SpectrumData = field(default=None)
+    spectrum: SpectrumData | None = field(default=None)
     label: str = "raw"
     region_name: str = "full"
-    spectrum_hash: str = field(default=None, repr=False)
+    spectrum_hash: str | None = field(default=None, repr=False)
     spectrum_length: int = field(default=0, init=False)
 
     def __post_init__(self):
