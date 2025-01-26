@@ -16,7 +16,7 @@ def collect_raman_file_infos(
     for file in raman_files:
         _files.append(file)
         try:
-            pp_res = RamanFileInfo(**{"file": file})
+            pp_res = RamanFileInfo(file=file)
             pp_collection.append(pp_res)
         except Exception as exc:
             logger.warning(

@@ -1,4 +1,3 @@
-from typing import Sequence
 import numpy as np
 
 from pydantic import (
@@ -15,8 +14,8 @@ class SpectrumData(BaseModel):
     ramanshift: pnd.Np1DArrayFp32 = Field(repr=False)
     intensity: pnd.Np1DArrayFp32 = Field(repr=False)
     label: str
+    source: FilePath | str | set[FilePath] | set[str]
     region_name: str | None = None
-    source: FilePath | Sequence[FilePath] | str | Sequence[str] | None = None
 
     @model_validator(mode="after")
     def validate_equal_length(self):

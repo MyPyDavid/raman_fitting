@@ -62,6 +62,7 @@ EXPORT_FOLDER_NAMES = {
 
 
 class RunModes(StrEnum):
+    CURRENT_DIR = auto()
     NORMAL = auto()
     PYTEST = auto()
     EXAMPLES = auto()
@@ -92,6 +93,12 @@ def get_run_mode_paths(run_mode: RunModes, user_package_home: Path = None):
             "DATASET_DIR": user_package_home / "datafiles",
             "USER_CONFIG_FILE": user_package_home / "raman_fitting.toml",
             "INDEX_FILE": user_package_home / f"{PACKAGE_NAME}_index.csv",
+        },
+        RunModes.CURRENT_DIR.name: {
+            "RESULTS_DIR": Path.cwd() / PACKAGE_NAME / "results",
+            "DATASET_DIR": Path.cwd() / PACKAGE_NAME / "datafiles",
+            "USER_CONFIG_FILE": Path.cwd() / f"{PACKAGE_NAME}.toml",
+            "INDEX_FILE": Path.cwd() / f"{PACKAGE_NAME}_index.csv",
         },
     }
     if run_mode.name not in RUN_MODE_PATHS:

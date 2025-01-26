@@ -1,6 +1,7 @@
 from enum import StrEnum
 from typing import List, Optional, Dict
 
+from loguru import logger
 from pydantic import (
     BaseModel,
     ConfigDict,
@@ -8,8 +9,9 @@ from pydantic import (
     Field,
     field_validator,
     model_validator,
+    ValidationError,
 )
-from lmfit import Parameters
+from lmfit import Parameters, Parameter
 from lmfit.models import Model
 
 from raman_fitting.models.deconvolution.lmfit_parameter import (
@@ -17,7 +19,7 @@ from raman_fitting.models.deconvolution.lmfit_parameter import (
     LMFitParameterHints,
     parmeter_to_dict,
 )
-from raman_fitting.config.default_models import load_config_from_toml_files
+from raman_fitting.config.load_config_from_toml import load_config_from_toml_files
 from raman_fitting.utils.string_operations import prepare_text_from_param
 
 ParamHintDict = Dict[str, Dict[str, Optional[float | bool | str]]]
@@ -197,23 +199,38 @@ class BasePeak(BaseModel):
 
 
 def make_string_from_param_hints(param_hints: Parameters) -> str:
-    param_center = param_hints.get("center", {})
+    param_center = param_hints.get("center", Parameter)
     text = prepare_text_from_param(param_center)
     return text
+
+
+def collect_base_peaks_from_config_definitions() -> Dict[str, BasePeak]:
+    config_definitions = load_config_from_toml_files()
+    region_definitions = config_definitions["spectrum"]["regions"]
+
+    peak_models = {}
+    for region_name, region in region_definitions.items():
+        if "peaks" not in region:
+            continue
+        for peak_name, peak_data in region["peaks"].items():
+            peak_models[peak_name] = BasePeak(**peak_data)
+    return peak_models
 
 
 def get_peaks_from_peak_definitions(
     peak_definitions: Optional[Dict] = None,
 ) -> Dict[str, BasePeak]:
     if peak_definitions is None:
-        peak_definitions = load_config_from_toml_files()
-    peak_settings = {
-        k: val.get("peaks") for k, val in peak_definitions.items() if "peaks" in val
-    }
+        peak_models = collect_base_peaks_from_config_definitions()
+        return peak_models
+
     peak_models = {}
-    for peak_type, peak_type_defs in peak_settings.items():
-        if peak_type_defs is None:
+    for peak_name, peak_data in peak_definitions.items():
+        if peak_data is None:
             continue
-        for peak_name, peak_def in peak_type_defs.items():
-            peak_models[peak_name] = BasePeak(**peak_def)
+        try:
+            peak_models[peak_name] = BasePeak(**peak_data)
+        except ValidationError as e:
+            logger.error(f"Skipped definition for {peak_name}:\n{peak_data}\n{e}")
+
     return peak_models

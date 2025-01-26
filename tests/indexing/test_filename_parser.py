@@ -35,7 +35,7 @@ sGrp_name_mapper = {}
 def path_parsers(example_files):
     path_parsers_ = []
     for fn in example_files:
-        path_parsers_.append(RamanFileInfo(**{"file": fn}))
+        path_parsers_.append(RamanFileInfo(file=fn))
     return path_parsers_
 
 

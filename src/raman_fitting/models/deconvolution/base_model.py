@@ -1,7 +1,7 @@
 """The members of the validated collection of BasePeaks are assembled here into fitting Models"""
 
-import logging
-from typing import Optional, Dict
+from types import MappingProxyType
+from typing import Optional, Dict, TypeAlias
 from warnings import warn
 
 from lmfit.models import Model as LMFitModel
@@ -10,6 +10,7 @@ from pydantic import (
     Field,
     ConfigDict,
     model_validator,
+    computed_field,
 )
 
 
@@ -22,9 +23,7 @@ from raman_fitting.models.deconvolution.lmfit_parameter import (
 )
 from raman_fitting.models.splitter import RegionNames
 
-logger = logging.getLogger(__name__)
 
-SUBSTRATE_PEAK = "Si1_peak"
 SEP = "+"
 SUFFIX = "_"
 
@@ -50,8 +49,8 @@ class BaseLMFitModel(BaseModel):
 
     model_config = ConfigDict(arbitrary_types_allowed=True)
 
-    name: str
-    peaks: str
+    name: str = Field(min_length=3, max_length=32)
+    peaks: str = Field(min_length=1, max_length=32)
     peak_collection: Dict[str, BasePeak] = Field(
         default_factory=get_peaks_from_peak_definitions,
         validate_default=True,
@@ -60,8 +59,9 @@ class BaseLMFitModel(BaseModel):
     lmfit_model: LMFitModel = Field(None, init_var=False, repr=False)
     region_name: RegionNames
 
+    @computed_field
     @property
-    def has_substrate(self):
+    def has_substrate(self) -> bool:
         if not self.lmfit_model.components:
             return False
         comps = set(map(lambda x: x.prefix, self.lmfit_model.components))
@@ -80,7 +80,7 @@ class BaseLMFitModel(BaseModel):
 
         for name in self.substrate_peaks.keys():
             self.peaks += SEP + name
-        self.check_lmfit_model()
+        self.reconstruct_lmfit_model()
 
     def remove_substrate(self):
         if not self.has_substrate:
@@ -93,10 +93,11 @@ class BaseLMFitModel(BaseModel):
         for name in self.substrate_peaks.keys():
             _peaks.remove(name)
         self.peaks = SEP.join(_peaks)
-        self.check_lmfit_model()
+        self.reconstruct_lmfit_model()
 
+    @computed_field
     @property
-    def substrate_peaks(self):
+    def substrate_peaks(self) -> Dict[str, BasePeak]:
         return {k: val for k, val in self.peak_collection.items() if val.is_substrate}
 
     @model_validator(mode="after")
@@ -111,15 +112,25 @@ class BaseLMFitModel(BaseModel):
 
     @model_validator(mode="after")
     def check_lmfit_model(self) -> "BaseLMFitModel":
-        lmfit_model = construct_lmfit_model(self.peaks, self.peak_collection)
-        self.lmfit_model = lmfit_model
+        self.reconstruct_lmfit_model()
         return self
+
+    def reconstruct_lmfit_model(self):
+        self.lmfit_model = construct_lmfit_model(self.peaks, self.peak_collection)
 
 
 def construct_lmfit_model(
     peaks: str, peak_collection: Dict[str, BasePeak]
 ) -> LMFitModel:
+    if not peak_collection:
+        raise ValueError("peak collection should not be empty.")
+    if not peaks:
+        raise ValueError("peaks should not be empty.")
     peak_names = peaks.split(SEP)
+    if not peak_names:
+        raise ValueError(
+            f"could not split any peak names from {peaks} with separator {SEP}."
+        )
     base_peaks = [peak_collection[i] for i in peak_names if i in peak_collection]
     if not base_peaks:
         raise ValueError(f"Could not find matching peaks for {peaks}")
@@ -128,23 +139,22 @@ def construct_lmfit_model(
     return lmfit_model
 
 
+LMFitModelCollection: TypeAlias = Dict[str, Dict[str, BaseLMFitModel]]
+
+
 def get_models_and_peaks_from_definitions(
-    models_and_peaks_definitions: Optional[Dict] = None,
-) -> Dict[str, Dict[str, BaseLMFitModel]]:
-    peak_collection = get_peaks_from_peak_definitions(
-        peak_definitions=models_and_peaks_definitions
-    )
-    models_settings = {
-        k: val.get("models")
-        for k, val in models_and_peaks_definitions.items()
-        if "models" in val
-    }
+    models_and_peaks_definitions: Optional[MappingProxyType] = None,
+) -> LMFitModelCollection:
+    region_settings = models_and_peaks_definitions["spectrum"]["regions"]
     all_models = {}
-    for region_name, region_model_settings in models_settings.items():
+    for region_name, region_model_settings in region_settings.items():
         if region_model_settings is None:
             continue
         all_models[region_name] = {}
-        for model_name, model_peaks in region_model_settings.items():
+        peaks = region_model_settings.get("peaks", {})
+        peak_collection = get_peaks_from_peak_definitions(peak_definitions=peaks)
+        region_models = region_model_settings.get("models", {})
+        for model_name, model_peaks in region_models.items():
             all_models[region_name][model_name] = BaseLMFitModel(
                 name=model_name,
                 peaks=model_peaks,

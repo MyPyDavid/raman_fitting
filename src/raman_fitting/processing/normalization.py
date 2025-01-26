@@ -11,8 +11,14 @@ from loguru import logger
 
 def get_simple_normalization_intensity(split_spectrum: SplitSpectrum) -> float:
     norm_spec = split_spectrum.get_region("normalization")
-    normalization_intensity = np.nanmax(norm_spec.intensity)
-    return normalization_intensity
+    if norm_spec.intensity.any():
+        return np.nanmax(norm_spec.intensity)
+    else:
+        valid_regions = [
+            i for i in split_spectrum.spec_regions.values() if i.intensity.any()
+        ]
+        max_valid_regions = max([i.intensity.max() for i in valid_regions])
+        return max_valid_regions
 
 
 def get_normalization_factor(
@@ -25,7 +31,8 @@ def get_normalization_factor(
 
     if "fit" in norm_method and normalization_model is not None:
         fit_norm = normalizer_fit_model(
-            split_spectrum, normalization_model=normalization_model
+            split_spectrum.get_region("normalization"),
+            normalization_model=normalization_model,
         )
         if fit_norm is not None:
             normalization_intensity = fit_norm
@@ -73,9 +80,9 @@ def normalize_split_spectrum(
 
 
 def normalizer_fit_model(
-    specrum: SpectrumData, normalization_model: LMFitModel
+    spectrum: SpectrumData, normalization_model: LMFitModel
 ) -> float | None:
-    spec_fit = SpectrumFitModel(spectrum=specrum, model=normalization_model)
+    spec_fit = SpectrumFitModel(spectrum=spectrum, model=normalization_model)
     spec_fit.run_fit()
     if not spec_fit.fit_result:
         return

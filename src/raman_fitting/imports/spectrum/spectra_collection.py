@@ -51,7 +51,7 @@ class SpectraDataCollection(BaseModel):
         mean_ramanshift = np.mean(
             np.vstack([i.ramanshift for i in self.spectra]), axis=0
         )
-        source_files = list(set(i.source for i in self.spectra))
+        source_files = set(i.source for i in self.spectra)
         _label = "".join(map(str, set(i.label for i in self.spectra)))
         mean_spec = SpectrumData(
             ramanshift=mean_ramanshift,
@@ -61,3 +61,4 @@ class SpectraDataCollection(BaseModel):
             source=source_files,
         )
         self.mean_spectrum = mean_spec
+        return self

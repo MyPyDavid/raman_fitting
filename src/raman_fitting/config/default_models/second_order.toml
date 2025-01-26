@@ -1,38 +1,44 @@
-[second_order]
+[spectrum]
 
-[second_order.models]
+[spectrum.regions.second_order]
+
+[spectrum.regions.second_order.limits]
+min = 2150
+max = 3380
+
+[spectrum.regions.second_order.models]
 2nd_4peaks = "D4D4+D1D1+GD1+D2D2"
 
-[second_order.peaks]
+[spectrum.regions.second_order.peaks]
 
-[second_order.peaks.D4D4]
+[spectrum.regions.second_order.peaks.D4D4]
 peak_name = "D4D4"
 peak_type = "Lorentzian"
-[second_order.peaks.D4D4.param_hints]
+[spectrum.regions.second_order.peaks.D4D4.param_hints]
 center = {value = 2435, min = 2400, max = 2550}
 sigma = {value = 30, min = 1, max = 200}
 amplitude = {value = 2, min = 1e-03, max = 100}
 
-[second_order.peaks.D1D1]
+[spectrum.regions.second_order.peaks.D1D1]
 peak_name = "D1D1"
 peak_type = "Lorentzian"
-[second_order.peaks.D1D1.param_hints]
+[spectrum.regions.second_order.peaks.D1D1.param_hints]
 center = {value = 2650, min = 2600, max = 2750}
 sigma = {value = 60, min = 1, max = 200}
 amplitude = {value = 14, min = 1e-03, max = 100}
 
-[second_order.peaks.GD1]
+[spectrum.regions.second_order.peaks.GD1]
 peak_name = "GD1"
 peak_type = "Lorentzian"
-[second_order.peaks.GD1.param_hints]
+[spectrum.regions.second_order.peaks.GD1.param_hints]
 center = {value = 2900, min = 2800, max = 2950}
 sigma = {value = 50, min = 1, max = 200}
 amplitude = {value = 10, min = 1e-03, max = 100}
 
-[second_order.peaks.D2D2]
+[spectrum.regions.second_order.peaks.D2D2]
 peak_type = "Lorentzian"
 peak_name = "D2D2"
-[second_order.peaks.D2D2.param_hints]
+[spectrum.regions.second_order.peaks.D2D2.param_hints]
 center = {value = 3250, min = 3000, max = 3400}
 sigma = {value = 60, min = 20, max = 200}
 amplitude = {value = 1, min = 1e-03, max = 100}

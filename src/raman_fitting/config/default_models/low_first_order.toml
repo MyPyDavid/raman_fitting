@@ -1,0 +1,87 @@
+[spectrum]
+
+[spectrum.regions.low_first_order]
+
+[spectrum.regions.low_first_order.limits]
+min = 220
+max = 500
+extra_margin = 10
+
+[spectrum.regions.low_first_order.models]
+low1peak = "A"
+low2peaks = "B+C"
+low3peaks = "A+B+C"
+low4peaks = "A+B+C+C2"
+low5peaks = "A+B+C+C2+F"
+
+[spectrum.regions.low_first_order.peaks]
+
+[spectrum.regions.low_first_order.peaks.A]
+docstring = """
+A, around 290
+"""
+peak_name = "A"
+peak_type = "Lorentzian"
+[spectrum.regions.low_first_order.peaks.A.param_hints]
+center = {value = 290, min = 220, max = 300}
+sigma = {value = 30, min = 2, max = 70}
+amplitude = {value = 50, min = 1e-05, max = 500}
+
+
+[spectrum.regions.low_first_order.peaks.B]
+docstring = """
+around 320
+"""
+peak_name = "B"
+peak_type = "Lorentzian"
+[spectrum.regions.low_first_order.peaks.B.param_hints]
+center = {value = 315, min = 300, max = 340}
+sigma = {value = 35, min = 1, max = 150}
+amplitude = {value = 120, min = 1e-05, max = 500}
+
+[spectrum.regions.low_first_order.peaks.C]
+docstring = """
+around 340
+"""
+peak_name = "C"
+peak_type = "Lorentzian"
+[spectrum.regions.low_first_order.peaks.C.param_hints]
+center = {value = 340, min = 325, max = 355}
+sigma = {value = 30, min = 5, max = 150}
+amplitude = {value = 70, min = 5, max = 500}
+
+
+[spectrum.regions.low_first_order.peaks.C2]
+docstring = """
+should of c, around 370
+"""
+peak_name = "C2"
+peak_type = "Lorentzian"
+[spectrum.regions.low_first_order.peaks.C2.param_hints]
+center = {value = 360, min = 355, max = 375}
+sigma = {value = 25, min = 5, max = 150}
+amplitude = {value = 25, min = 1e-02, max = 500}
+
+[spectrum.regions.low_first_order.peaks.F]
+docstring = """
+F, around 475
+"""
+peak_name = "F"
+peak_type = "Lorentzian"
+[spectrum.regions.low_first_order.peaks.F.param_hints]
+center = {value = 475, min = 450, max = 500}
+sigma = {value = 40, min = 1, max = 150}
+amplitude = {value = 20, min = 1e-02, max = 200}
+
+
+[spectrum.regions.low_first_order.peaks.Si2]
+docstring =  """
+Extra band at 670
+"""
+peak_name = "Si2"
+peak_type = "Gaussian"
+is_substrate = true
+[spectrum.regions.low_first_order.peaks.Si2.param_hints]
+center = {value = 670, min = 600, max = 710}
+sigma = {value = 40, min = 0, max = 150}
+amplitude = {value = 10, min = 0, max = 200}

@@ -5,6 +5,7 @@ from pydantic import BaseModel, model_validator, Field, ConfigDict
 from lmfit import Model as LMFitModel
 from lmfit.model import ModelResult
 
+from raman_fitting.config import settings
 from raman_fitting.models.deconvolution.base_model import BaseLMFitModel
 from raman_fitting.models.deconvolution.spectrum_regions import RegionNames
 from raman_fitting.models.post_deconvolution.calculate_params import (
@@ -21,7 +22,7 @@ class SpectrumFitModel(BaseModel):
     model: BaseLMFitModel
     region: RegionNames
     fit_kwargs: Dict = Field(default_factory=dict, repr=False)
-    fit_result: ModelResult = Field(None, init_var=False)
+    fit_result: ModelResult = Field(None, init_var=False)  # TODO move to property
     param_results: Dict = Field(default_factory=dict)
     elapsed_time: float = Field(0, init_var=False, repr=False)
 
@@ -33,6 +34,28 @@ class SpectrumFitModel(BaseModel):
             raise ValueError(
                 f"Region names do not match {model_region} and {spec_region}"
             )
+        return self
+
+    @model_validator(mode="after")
+    def test_if_spectrum_has_model_region(self) -> "SpectrumFitModel":
+        model_region = self.model.region_name
+        region_limits = settings.default_regions[model_region]
+        center_params = [
+            i.param_hints.get("center", {}).get("value", 0)
+            for i in self.model.lmfit_model.components
+        ]
+        if not all(region_limits.min <= i <= region_limits.max for i in center_params):
+            raise ValueError("Not all model params fall in the region limits.")
+        if not (self.spectrum.ramanshift.any() and self.spectrum.intensity.any()):
+            raise ValueError("Spectrum is empty.")
+        if not all(
+            self.spectrum.ramanshift.min() <= i <= self.spectrum.ramanshift.max()
+            for i in center_params
+        ):
+            raise ValueError(
+                "Not all model params are covered by the spectrum ramanshift data."
+            )
+
         return self
 
     def run_fit(self) -> None:
@@ -54,7 +77,8 @@ class SpectrumFitModel(BaseModel):
         params_ratio_vars = calculate_ratio_of_unique_vars_in_results(
             param_results, raise_exception=False
         )
-        self.param_results["ratios"] = params_ratio_vars
+        param_results["ratios"] = params_ratio_vars
+        self.param_results = param_results
 
 
 def call_fit_on_model(

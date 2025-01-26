@@ -2,7 +2,7 @@ import sys
 
 from pathlib import Path
 
-from raman_fitting.imports.spectrum.datafile_parsers import load_dataset_from_file
+from raman_fitting.imports.spectrum.datafile_parser_utils import load_dataset_from_file
 
 from loguru import logger
 

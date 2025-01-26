@@ -1,5 +1,5 @@
 # set base image (host OS)
-FROM python:3.11
+FROM python:3.12
 
 RUN addgroup -S nonroot \
     && adduser -S nonroot -G nonroot

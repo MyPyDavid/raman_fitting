@@ -1,5 +1,6 @@
 # pylint: disable=W0614,W0401,W0611,W0622,C0103,E0401,E0402
 from dataclasses import dataclass, field
+from pathlib import Path
 from typing import Dict, List, Sequence, Any
 
 from raman_fitting.config.path_settings import (
@@ -9,6 +10,7 @@ from raman_fitting.config.path_settings import (
 )
 from raman_fitting.config import settings
 
+from raman_fitting.imports.files.file_finder import FileFinder
 from raman_fitting.imports.models import RamanFileInfo
 
 from raman_fitting.models.deconvolution.base_model import BaseLMFitModel
@@ -28,7 +30,7 @@ from raman_fitting.delegating.models import (
 from raman_fitting.delegating.pre_processing import (
     prepare_aggregated_spectrum_from_files,
 )
-from raman_fitting.types import LMFitModelCollection
+from raman_fitting.models.deconvolution.base_model import LMFitModelCollection
 from raman_fitting.delegating.run_fit_spectrum import run_fit_over_selected_models
 
 
@@ -45,48 +47,69 @@ class MainDelegator:
     Creates plots and files in the config RESULTS directory.
     """
 
-    run_mode: RunModes
-    use_multiprocessing: bool = False
+    run_mode: RunModes | None = field(default=None)
+    use_multiprocessing: bool = field(default=False, repr=False)
     lmfit_models: LMFitModelCollection = field(
-        default_factory=lambda: settings.default_models
+        default_factory=lambda: settings.default_models,
+        repr=False,
     )
     fit_model_region_names: Sequence[RegionNames] = field(
-        default=(RegionNames.first_order, RegionNames.second_order)
+        default=(RegionNames.FIRST_ORDER, RegionNames.SECOND_ORDER)
     )
     fit_model_specific_names: Sequence[str] | None = None
-    sample_ids: Sequence[str] = field(default_factory=list)
-    sample_groups: Sequence[str] = field(default_factory=list)
-    index: RamanFileIndex = None
+    select_sample_ids: Sequence[str] = field(default_factory=list)
+    select_sample_groups: Sequence[str] = field(default_factory=list)
+    index: RamanFileIndex | None = field(default=None, repr=False)
     selection: Sequence[RamanFileInfo] = field(init=False)
     selected_models: Sequence[RamanFileInfo] = field(init=False)
 
-    results: Dict[str, Any] | None = field(default=None, init=False)
+    results: Dict[str, Any] | None = field(default=None, init=False, repr=False)
     export: bool = True
+    suffixes: List[str] = field(default_factory=lambda: [".txt"])
+    exclusions: List[str] = field(default_factory=lambda: ["."])
 
     def __post_init__(self):
         run_mode_paths = initialize_run_mode_paths(self.run_mode)
         if self.index is None:
-            raman_files = run_mode_paths.dataset_dir.glob("*.txt")
+            file_finder = FileFinder(
+                directory=run_mode_paths.dataset_dir,
+                suffixes=self.suffixes,
+                exclusions=self.exclusions,
+            )
+
+            raman_files = file_finder.files
             index_file = run_mode_paths.index_file
             self.index = initialize_index_from_source_files(
                 files=raman_files, index_file=index_file, force_reindex=True
             )
+        elif isinstance(self.index, Path):
+            self.index = initialize_index_from_source_files(
+                index_file=self.index, force_reindex=False
+            )
 
         self.selection = self.select_samples_from_index()
-        self.selected_models = self.select_models_from_provided_models()
+        self.selected_models = select_models_from_provided_models(
+            region_names=self.fit_model_region_names,
+            model_names=self.fit_model_specific_names,
+            provided_models=self.lmfit_models,
+        )
+
         self.main_run()
         if self.export:
             self.exports = self.call_export_manager()
 
     def select_samples_from_index(self) -> Sequence[RamanFileInfo]:
-        index = self.index
+        if self.index is None:
+            raise ValueError("Index was not initialized")
+        elif not self.index.raman_files:
+            logger.info("No raman files were found in the index.")
+            return []
+
         # breakpoint()
         index_selector = IndexSelector(
-            **dict(
-                raman_files=index.raman_files,
-                sample_groups=self.sample_groups,
-                sample_ids=self.sample_ids,
-            )
+            raman_files=self.index.raman_files,
+            sample_groups=self.select_sample_groups,
+            sample_ids=self.select_sample_ids,
         )
         selection = index_selector.selection
         if not selection:
@@ -94,31 +117,11 @@ class MainDelegator:
         return selection
 
     def call_export_manager(self):
-        # breakpoint()
         export = ExportManager(self.run_mode, self.results)
         exports = export.export_files()
         return exports
 
     # region_names:List[RegionNames], model_names: List[str]
-    def select_models_from_provided_models(self) -> LMFitModelCollection:
-        selected_region_names = self.fit_model_region_names
-        selected_model_names = self.fit_model_specific_names
-        selected_models = {}
-        for region_name, all_region_models in self.lmfit_models.items():
-            if region_name not in selected_region_names:
-                continue
-            if not selected_model_names:
-                selected_models[region_name] = all_region_models
-                continue
-            selected_region_models = {}
-            for mod_name, mod_val in all_region_models.items():
-                if mod_name not in selected_model_names:
-                    continue
-                selected_region_models[mod_name] = mod_val
-
-            selected_models[region_name] = selected_region_models
-        return selected_models
-
     def select_fitting_model(
         self, region_name: RegionNames, model_name: str
     ) -> BaseLMFitModel:
@@ -170,6 +173,12 @@ def get_results_over_selected_models(
 ) -> Dict[RegionNames, AggregatedSampleSpectrumFitResult]:
     results = {}
     for region_name, region_grp in models.items():
+        try:
+            region_name = RegionNames(region_name)
+        except ValueError as exc:
+            logger.error(f"Region name {region_name} not found. {exc}")
+            continue
+
         aggregated_spectrum = prepare_aggregated_spectrum_from_files(
             region_name, raman_files
         )
@@ -182,6 +191,29 @@ def get_results_over_selected_models(
         )
         results[region_name] = fit_region_results
     return results
+
+
+def select_models_from_provided_models(
+    region_names: Sequence[RegionNames],
+    provided_models: LMFitModelCollection,
+    model_names: Sequence[str] | None = None,
+) -> LMFitModelCollection:
+    """Select certain models from a provided collection"""
+    selected_models = {}
+    for region_name, all_region_models in provided_models.items():
+        if region_name not in {i.value for i in region_names}:
+            continue
+        if not model_names:
+            selected_models[region_name] = all_region_models
+            continue
+        selected_region_models = {}
+        for mod_name, mod_val in all_region_models.items():
+            if mod_name not in model_names:
+                continue
+            selected_region_models[mod_name] = mod_val
+
+        selected_models[region_name] = selected_region_models
+    return selected_models
 
 
 def make_examples():

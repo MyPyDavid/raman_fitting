@@ -29,10 +29,10 @@ jobs:
       - name: Fetch all history for all tags and branches
         run: git fetch --prune --unshallow
 
-      - name: Set up python 3.11
+      - name: Set up python 3.12
         uses: actions/setup-python@v4
         with:
-          python-version: 3.11
+          python-version: 3.12
 
       # Installs and upgrades pip, installs other dependencies and installs the package from pyproject.toml
       - name: Installs and upgrades pip and installs other dependencies
