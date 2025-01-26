@@ -6,6 +6,7 @@ __current_package_name__ = "raman_fitting"
 __package_name__ = __current_package_name__
 
 import importlib.util
+import sys
 
 try:
     from ._version import __version__
@@ -24,30 +25,20 @@ except ImportError:
 except Exception:
     __version__ = "catch_exception_version"
 
-import sys
-import warnings
 
-# This code is written for Python 3.11 and higher
-if sys.version_info.major < 3 and sys.version_info.minor < 11:
-    raise RuntimeError(f"{__package_name__} requires Python 3.11 or higher.")
+# This code is written for Python 3.12 and higher
+if sys.version_info.major < 3 and sys.version_info.minor < 12:
+    raise RuntimeError(f"{__package_name__} requires Python 3.12 or higher.")
 
-# Let users know if they're missing any hard dependencies
-hard_dependencies = ("numpy", "pandas", "scipy", "matplotlib", "lmfit", "pydantic")
-soft_dependencies = {}
-missing_dependencies = []
+# Let users know if they're missing any dependencies
+dependencies: set = {"numpy", "pandas", "scipy", "matplotlib", "lmfit", "pydantic"}
+missing_dependencies = set()
 
-
-for dependency in hard_dependencies:
+for dependency in dependencies:
     if not importlib.util.find_spec(dependency):
-        missing_dependencies.append(dependency)
+        missing_dependencies.add(dependency)
 
 if missing_dependencies:
     raise ImportError(f"Missing required dependencies {missing_dependencies}")
 
-for dependency in soft_dependencies:
-    if not importlib.util.find_spec(dependency):
-        warnings.warn(
-            f"Missing important package {dependency}. {soft_dependencies[dependency]}"
-        )
-
-del hard_dependencies, soft_dependencies, dependency, missing_dependencies
+del dependencies, dependency, missing_dependencies

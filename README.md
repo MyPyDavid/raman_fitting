@@ -28,7 +28,7 @@ https://github.com/MyPyDavid/raman-fitting/wiki
 A release is now available on PyPI, installation can be done with these commands in a terminal.
 ``` bash
 # Setting up and activating a virtual environment
-python -m venv env # python 3.11 is recommended
+python -m venv env # python 3.12 is recommended
 source env/bin/activate
 
 # Installation from PyPI
@@ -110,7 +110,7 @@ The current version is v0.8.0
 
 ### Dependencies
 
-- python >= 3.11
+- python >= 3.12
 - lmfit >= 1.2.0
 - pandas >= 2.0.0
 - scipy >= 1.10.1
