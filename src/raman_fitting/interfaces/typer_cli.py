@@ -1,6 +1,6 @@
+import sys
 from typing import List, Optional
 from typing_extensions import Annotated
-
 from pathlib import Path
 from enum import StrEnum, auto
 
@@ -15,7 +15,6 @@ from raman_fitting.models.deconvolution.spectrum_regions import RegionNames
 from .utils import get_package_version
 
 import typer
-
 
 LOCAL_INDEX_FILE = Path.cwd().joinpath(INDEX_FILE_NAME)
 LOCAL_CONFIG_FILE = Path.cwd().joinpath("raman_fitting.toml")
@@ -92,6 +91,8 @@ def run(
     run_mode: Annotated[RunModes, typer.Argument()] = RunModes.CURRENT_DIR,
     multiprocessing: Annotated[bool, typer.Option("--multiprocessing")] = False,
     index_file: Annotated[Path, typer.Option()] = None,
+    log_file: Annotated[Optional[Path], typer.Option("--log-file")] = None,
+    log_level: Annotated[str, typer.Option("--log-level", default="INFO")] = "INFO",
 ):
     if run_mode is None:
         print("No make run mode passed")
@@ -131,6 +132,16 @@ def run(
         kwargs.update({"fit_model_region_names": fit_models})
     if sample_ids:
         kwargs.update({"sample_ids": sample_ids})
+
+    # Set the log level
+    logger.remove()  # Remove any existing handlers
+    logger.add(sys.stderr, level=log_level)
+
+    # Configure the logger to write to the specified log file if provided
+    if log_file:
+        log_file = Path(log_file).resolve()
+        logger.add(log_file, level=log_level, rotation="10 MB")
+
     logger.info(f"Starting raman_fitting with CLI run mode: {run_mode}")
     logger.info(f"Starting raman_fitting with CLI kwargs: {kwargs}")
     _main_run = MainDelegator(**kwargs)

@@ -216,10 +216,13 @@ def select_models_from_provided_models(
     return selected_models
 
 
-def make_examples():
+def make_examples(**kwargs):
     # breakpoint()
     _main_run = MainDelegator(
-        run_mode="pytest", fit_model_specific_names=["2peaks", "3peaks", "2nd_4peaks"]
+        run_mode=RunModes.PYTEST,
+        fit_model_specific_names=["2peaks", "2nd_4peaks"],
+        export=False,
+        **kwargs,
     )
     _main_run.main_run()
     return _main_run

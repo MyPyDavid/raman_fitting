@@ -46,6 +46,7 @@ pytest = [
 	"pytest",
 	"pytest-cov",
 	"pytest-flake8",
+	"pytest-loguru",
 	"mock",
 	"wheel"
 	]
@@ -109,6 +110,7 @@ testpaths = [
 source = ["src"]
 omit = [
     "*/example_fixtures/*",
+	"**/_version.py",
     ]
 
 [tool.coverage.report]
