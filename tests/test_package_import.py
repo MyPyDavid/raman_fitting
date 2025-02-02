@@ -5,7 +5,7 @@ def test_call_version_on_package():
     # Import your package (this should not trigger any logging)
     import raman_fitting
 
-    version = raman_fitting.version()
+    version = raman_fitting.utils.version()
     assert raman_fitting.__package_name__ in version
 
 
@@ -34,7 +34,7 @@ def test_logging_disabled_when_importing_package(caplog):
     import raman_fitting
 
     # Emit a log message (this should not be captured)
-    raman_fitting.version()
+    raman_fitting.utils.version()
 
     # Check if no log message is captured in the caplog
     assert caplog.text == ""

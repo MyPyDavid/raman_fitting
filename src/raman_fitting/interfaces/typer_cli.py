@@ -6,7 +6,6 @@ from enum import StrEnum, auto
 
 from raman_fitting.config.load_config_from_toml import dump_default_config
 from raman_fitting.config.path_settings import RunModes, INDEX_FILE_NAME
-from raman_fitting.config.logging_config import logger
 from raman_fitting.delegating.main_delegator import MainDelegator
 from raman_fitting.imports.files.file_finder import FileFinder
 from raman_fitting.imports.files.file_indexer import initialize_index_from_source_files
@@ -90,13 +89,12 @@ def run(
     ],
     run_mode: Annotated[RunModes, typer.Argument()] = RunModes.CURRENT_DIR,
     multiprocessing: Annotated[bool, typer.Option("--multiprocessing")] = False,
-    index_file: Annotated[Path, typer.Option()] = None,
+    index_file: Annotated[Optional[Path], typer.Option()] = None,
     log_file: Annotated[Optional[Path], typer.Option("--log-file")] = None,
-    log_level: Annotated[str, typer.Option("--log-level", default="INFO")] = "INFO",
+    log_level: Annotated[str, typer.Option("--log-level")] = "INFO",
 ):
-    if run_mode is None:
-        print("No make run mode passed")
-        raise typer.Exit()
+    run_mode = RunModes(run_mode)
+
     kwargs = {"run_mode": run_mode, "use_multiprocessing": multiprocessing}
     if run_mode == RunModes.CURRENT_DIR:
         source_files, index_file, force_reindex = current_dir_prepare_index_kwargs()
@@ -104,11 +102,10 @@ def run(
             files=source_files, index_file=index_file, force_reindex=force_reindex
         )
         kwargs.update({"index": index_file})
+        # make config cwd
         dump_default_config(LOCAL_CONFIG_FILE)
-        kwargs["use_multiprocessing"] = True
         fit_models = RegionNames
         # make index cwd
-        # make config cwd
         # run fitting cwd
     elif run_mode == RunModes.EXAMPLES:
         kwargs.update(
@@ -131,8 +128,13 @@ def run(
     if fit_models:
         kwargs.update({"fit_model_region_names": fit_models})
     if sample_ids:
-        kwargs.update({"sample_ids": sample_ids})
+        kwargs.update({"select_sample_ids": sample_ids})
+    if group_ids:
+        kwargs.update({"select_sample_groups": group_ids})
 
+    from loguru import logger
+
+    logger.enable("raman_fitting")
     # Set the log level
     logger.remove()  # Remove any existing handlers
     logger.add(sys.stderr, level=log_level)
@@ -142,39 +144,36 @@ def run(
         log_file = Path(log_file).resolve()
         logger.add(log_file, level=log_level, rotation="10 MB")
 
-    logger.info(f"Starting raman_fitting with CLI run mode: {run_mode}")
-    logger.info(f"Starting raman_fitting with CLI kwargs: {kwargs}")
+    typer.echo(f"Starting raman_fitting with CLI run mode: {run_mode}")
+    typer.echo(f"Starting raman_fitting with CLI kwargs: {kwargs}")
     _main_run = MainDelegator(**kwargs)
+    logger.disable("raman_fitting")
 
 
 @app.command()
 def make(
     make_type: Annotated[MakeTypes, typer.Argument()],
-    source_files: Annotated[List[Path], typer.Option()] = None,
-    index_file: Annotated[Path, typer.Option()] = None,
+    source_files: Annotated[List[Path] | None, typer.Option()] = None,
+    index_file: Annotated[Path | None, typer.Option()] = None,
     force_reindex: Annotated[bool, typer.Option("--force-reindex")] = False,
 ):
-    if make_type is None:
-        raise typer.Exit()
-    if index_file:
-        index_file = index_file.resolve()
     if make_type == MakeTypes.INDEX:
+        if index_file is not None:
+            index_file = index_file.resolve()
+
         if not source_files:
             source_files, index_file, force_reindex = current_dir_prepare_index_kwargs()
-        initialize_index_from_source_files(
-            files=source_files, index_file=index_file, force_reindex=force_reindex
+        index = initialize_index_from_source_files(
+            files=source_files,
+            index_file=index_file,
+            force_reindex=force_reindex,
+            persist_to_file=True,
         )
+        if index is not None:
+            typer.echo(f"index prepared and saved to {index.index_file}")
     elif make_type == MakeTypes.CONFIG:
         dump_default_config(LOCAL_CONFIG_FILE)
-
-
-@app.command()
-def generate(
-    generate_type: Annotated[MakeTypes, typer.Argument()],
-):
-    """generate things in local cwd"""
-    if generate_type == "peaks":
-        pass
+        typer.echo(f"config file created: {LOCAL_CONFIG_FILE}")
 
 
 @app.callback()

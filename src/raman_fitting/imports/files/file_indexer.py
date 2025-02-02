@@ -44,22 +44,15 @@ class RamanFileIndex(BaseModel):
     @computed_field
     @property
     def dataset(self) -> Dataset | None:
-        if self.raman_files is None:
+        if self.raman_files is None or not self.raman_files:
+            logger.debug("No raman files provided for index.")
             return None
-        if self.reload_from_file:
+
+        if can_load_from_index_file(self.index_file, self.force_reindex):
             dataset = load_dataset_from_file(self.index_file)
-            if self.raman_files is None:
-                self.raman_files = parse_dataset_to_index(dataset)
             return dataset
+
         return cast_raman_files_to_dataset(self.raman_files)
-
-    @computed_field
-    @property
-    def reload_from_file(self) -> Dataset | None:
-        return validate_reload_from_index_file(self.index_file, self.force_reindex)
-
-    def initialize_data(self) -> None:
-        read_or_load_data(self)
 
     def __len__(self) -> int:
         if self.raman_files is None:
@@ -67,7 +60,7 @@ class RamanFileIndex(BaseModel):
         return len(self.raman_files)
 
 
-def load_data_from_file(index_file) -> None:
+def load_data_from_file(index_file) -> Dataset:
     return load_dataset_from_file(index_file)
 
 
@@ -94,8 +87,8 @@ def validate_and_set_dataset(index: RamanFileIndex) -> None:
         if len(dataset_rf) != len(index.dataset):
             raise IndexValidationError("Length of datasets are different.")
 
+        _errors = []
         for row1, row2 in zip(dataset_rf.dict, index.dataset.dict):
-            _errors = []
             if row1 != row2:
                 _errors.append(f"Row1: {row1} != Row2: {row2}")
         if _errors:
@@ -104,7 +97,7 @@ def validate_and_set_dataset(index: RamanFileIndex) -> None:
 
 def set_raman_files_from_dataset(index: RamanFileIndex) -> None:
     if index.dataset is not None:
-        index.raman_files = parse_dataset_to_index(index.dataset)
+        index.raman_files = parse_dataset_to_raman_files_info(index.dataset)
 
 
 def persist_dataset_to_file(index: RamanFileIndex) -> None:
@@ -115,12 +108,11 @@ def persist_dataset_to_file(index: RamanFileIndex) -> None:
 def read_or_load_data(index: RamanFileIndex) -> None:
     if not any([index.index_file, index.raman_files, index.dataset]):
         raise ValueError("Not all fields should be empty.")
-
-    reload_from_file = validate_reload_from_index_file(
+    can_can_reload_from_file = can_load_from_index_file(
         index.index_file, index.force_reindex
     )
-    if reload_from_file:
-        load_data_from_file(index)
+    if can_can_reload_from_file:
+        load_data_from_file(index.index_file)
         return
 
     validate_and_set_dataset(index)
@@ -133,14 +125,13 @@ def read_or_load_data(index: RamanFileIndex) -> None:
     persist_dataset_to_file(index)
 
 
-def validate_reload_from_index_file(
-    index_file: Path | None, force_reindex: bool
-) -> bool:
+def can_load_from_index_file(index_file: Path | None, force_reindex: bool) -> bool:
     if index_file is None:
         logger.debug(
             "Index file not provided, index will not be reloaded or persisted."
         )
         return False
+
     if index_file.exists() and not force_reindex:
         return True
     elif force_reindex:
@@ -163,7 +154,6 @@ def cast_raman_files_to_dataset(raman_files: RamanFileInfoSet) -> Dataset | None
         try:
             data.append(file.model_dump(mode="json").values())
         except InvalidDimensions as e:
-            breakpoint()
             logger.error(f"Error adding file to dataset: {e}")
     if len(data) == 0:
         logger.error(f"No data was added to the dataset for {len(raman_files)} files.")
@@ -171,7 +161,7 @@ def cast_raman_files_to_dataset(raman_files: RamanFileInfoSet) -> Dataset | None
     return data
 
 
-def parse_dataset_to_index(dataset: Dataset) -> RamanFileInfoSet:
+def parse_dataset_to_raman_files_info(dataset: Dataset) -> RamanFileInfoSet:
     raman_files = []
     for row in dataset:
         row_data = dict(zip(dataset.headers, row))
@@ -282,13 +272,17 @@ def initialize_index_from_source_files(
     files: Sequence[Path] | None = None,
     index_file: Path | None = None,
     force_reindex: bool = False,
+    persist_to_file: bool = False,
 ) -> RamanFileIndex:
     raman_files = collect_raman_file_index_info(raman_files=files)
     raman_index = RamanFileIndex(
-        index_file=index_file, raman_files=raman_files, force_reindex=force_reindex
+        index_file=index_file,
+        raman_files=raman_files,
+        force_reindex=force_reindex,
+        persist_to_file=persist_to_file,
     )
-    logger.info(f"index_delegator index prepared with len {len(raman_index)}")
-    raman_index.initialize_data()  # TODO fix or check
+    logger.info(f"index prepared with len {len(raman_index)}")
+    # read_or_load_data(raman_index)  # Directly call read_or_load_data
     return raman_index
 
 

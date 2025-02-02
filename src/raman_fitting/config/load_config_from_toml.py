@@ -1,6 +1,7 @@
 from pathlib import Path
 from types import MappingProxyType
 import tomllib
+from typing import Any
 
 import tomli_w
 from loguru import logger
@@ -25,7 +26,7 @@ def merge(base: dict, update: dict) -> None:
 def load_config_from_toml_files(config_dir: Path | None = None) -> MappingProxyType:
     if config_dir is None:
         config_dir = INTERNAL_DEFAULT_MODELS
-    config_definitions = {}
+    config_definitions: dict[str, Any] = {}
     toml_files = list(config_dir.rglob("*.toml"))
     for file in toml_files:
         logger.debug(f"Loading config from file: {file}")
@@ -46,8 +47,9 @@ def load_config_from_toml_files(config_dir: Path | None = None) -> MappingProxyT
     return MappingProxyType(config_definitions)
 
 
-def dump_default_config(target_file: Path) -> None:
+def dump_default_config(target_file: Path) -> dict:
     default_config: dict = dict(load_config_from_toml_files())
     with open(target_file, "wb") as f:
         tomli_w.dump(default_config, f)
-    logger.info(f"Wrote default config to cwd:{target_file}")
+    logger.info(f"Default config file created:{target_file}")
+    return default_config
