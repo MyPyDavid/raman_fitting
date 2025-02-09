@@ -1,4 +1,3 @@
-from typing import List
 from pathlib import Path
 from pydantic import BaseModel, DirectoryPath, Field, computed_field
 
@@ -7,12 +6,12 @@ from loguru import logger
 
 class FileFinder(BaseModel):
     directory: DirectoryPath
-    suffixes: List[str] = Field(default_factory=lambda: [".txt"])
-    exclusions: List[str] = Field(default_factory=lambda: ["."])
+    suffixes: list[str] = Field(default_factory=lambda: [".txt"])
+    exclusions: list[str] = Field(default_factory=lambda: ["."])
 
     @computed_field
     @property
-    def files(self) -> List[Path]:
+    def files(self) -> list[Path]:
         files = find_files(self.directory, self.suffixes, self.exclusions)
         if not files:
             logger.warning(
@@ -22,8 +21,8 @@ class FileFinder(BaseModel):
 
 
 def find_files(
-    directory: Path, suffixes: List[str], exclusions: List[str]
-) -> List[Path]:
+    directory: Path, suffixes: list[str], exclusions: list[str]
+) -> list[Path]:
     """Find files in the directory with given suffixes and exclude paths containing any of the exclusions."""
     raman_files = []
     for suffix in suffixes:

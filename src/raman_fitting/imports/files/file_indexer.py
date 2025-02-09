@@ -25,6 +25,7 @@ from tablib import Dataset
 from tablib.exceptions import InvalidDimensions
 
 from raman_fitting.imports.spectrum.datafile_parsers import SPECTRUM_FILETYPE_PARSERS
+from raman_fitting.imports.files.file_finder import FileFinder
 
 RamanFileInfoSet: TypeAlias = Sequence[RamanFileInfo]
 
@@ -58,6 +59,9 @@ class RamanFileIndex(BaseModel):
         if self.raman_files is None:
             return 0
         return len(self.raman_files)
+
+    def __repr__(self):
+        return f"{self.__class__.__name__}({len(self.dataset)})"
 
 
 def load_data_from_file(index_file) -> Dataset:
@@ -101,7 +105,14 @@ def set_raman_files_from_dataset(index: RamanFileIndex) -> None:
 
 
 def persist_dataset_to_file(index: RamanFileIndex) -> None:
-    if index.persist_to_file and index.index_file is not None:
+    if (
+        index.persist_to_file
+        and index.index_file is not None
+        and index.dataset is not None
+    ):
+        if len(index.dataset) == 0:
+            logger.warning("Dataset is empty, not writing to file.")
+            return
         write_dataset_to_file(index.index_file, index.dataset)
 
 
@@ -121,6 +132,8 @@ def read_or_load_data(index: RamanFileIndex) -> None:
 
     if not index.raman_files and index.dataset is None:
         raise ValueError("Index error, both raman_files and dataset are not provided.")
+    elif len(index.dataset) == 0:
+        raise ValueError("Index error, dataset is empty.")
 
     persist_dataset_to_file(index)
 
@@ -209,21 +222,21 @@ class IndexSelector(BaseModel):
         return self
 
 
-def groupby_sample_group(index: RamanFileInfoSet):
+def group_by_sample_group(index: RamanFileInfoSet):
     """Generator for Sample Groups, yields the name of group and group of the index SampleGroup"""
     grouper = groupby(index, key=lambda x: x.sample.group)
     return grouper
 
 
-def groupby_sample_id(index: RamanFileInfoSet):
+def group_by_sample_id(index: RamanFileInfoSet):
     """Generator for SampleIDs, yields the name of group, name of SampleID and group of the index of the SampleID"""
     grouper = groupby(index, key=lambda x: x.sample.id)
     return grouper
 
 
 def iterate_over_groups_and_sample_id(index: RamanFileInfoSet):
-    for grp_name, grp in groupby_sample_group(index):
-        for sample_id, sgrp in groupby_sample_group(grp):
+    for grp_name, grp in group_by_sample_group(index):
+        for sample_id, sgrp in group_by_sample_group(grp):
             yield grp_name, grp, sample_id, sgrp
 
 
@@ -275,15 +288,39 @@ def initialize_index_from_source_files(
     persist_to_file: bool = False,
 ) -> RamanFileIndex:
     raman_files = collect_raman_file_index_info(raman_files=files)
+    if not raman_files:
+        logger.warning("No raman files were found.")
+        return RamanFileIndex(raman_files=None, index_file=None)
+
     raman_index = RamanFileIndex(
         index_file=index_file,
         raman_files=raman_files,
         force_reindex=force_reindex,
         persist_to_file=persist_to_file,
     )
-    logger.info(f"index prepared with len {len(raman_index)}")
+    if len(raman_index) == 0:
+        logger.warning("Index is empty, no raman files were found.")
+    else:
+        logger.info(f"index prepared with len {len(raman_index)}")
     # read_or_load_data(raman_index)  # Directly call read_or_load_data
     return raman_index
+
+
+def find_files_and_initialize_index(
+    directory: Path,
+    suffixes: list[str],
+    exclusions: list[str],
+    index_file: FilePath,
+) -> RamanFileIndex:
+    file_finder = FileFinder(
+        directory=directory,
+        suffixes=suffixes,
+        exclusions=exclusions,
+    )
+    index = initialize_index_from_source_files(
+        files=file_finder.files, index_file=index_file, force_reindex=True
+    )
+    return index
 
 
 def main():
@@ -304,3 +341,28 @@ def main():
 
 if __name__ == "__main__":
     main()
+
+
+def get_or_create_index(
+    index: RamanFileIndex | FilePath | None,
+    directory: Path | None = None,
+    suffixes: list[str] | None = None,
+    exclusions: list[str] | None = None,
+    index_file: Path | None = None,
+    force_reindex: bool = False,
+    persist_index: bool = False,
+) -> RamanFileIndex:
+    if index is None:
+        return find_files_and_initialize_index(
+            directory=directory,
+            suffixes=suffixes,
+            exclusions=exclusions,
+            index_file=index_file,
+        )
+
+    elif isinstance(index, Path):
+        return initialize_index_from_source_files(index_file=index, force_reindex=False)
+    elif isinstance(index, RamanFileIndex):
+        return index
+    else:
+        raise TypeError(f"can not handle index of type {type(index)} ")
