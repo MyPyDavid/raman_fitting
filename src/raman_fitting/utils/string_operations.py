@@ -10,9 +10,8 @@ def join_prefix_suffix(prefix: str, suffix: str) -> str:
 
 
 def prepare_text_from_param(param: Parameter) -> str:
-    text = ""
     if not param:
-        return text
+        return ""
     _ptext = ""
     _val = param.value
     _min = param.min
@@ -22,5 +21,4 @@ def prepare_text_from_param(param: Parameter) -> str:
     _max = param.max
     if _max != _val:
         _ptext += f" > {_max}"
-    text += f", center : {_ptext}"
-    return text
+    return f", center : {_ptext}"

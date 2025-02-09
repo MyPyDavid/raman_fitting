@@ -1,5 +1,4 @@
-""" this module prepares the local file paths for data and results"""
-
+"""this module prepares the local file paths for data and results"""
 
 from pathlib import Path
 
@@ -17,9 +16,6 @@ def check_and_make_dirs(destdir: Path) -> None:
         logger.info(
             f"check_and_make_dirs the results directory did not exist and was created at:\n{destdir}\n"
         )
-
-    if _destfile:
-        _destfile.touch()
 
 
 def create_dir_or_ask_user_input(destdir: Path, ask_user=True):

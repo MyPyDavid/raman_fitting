@@ -13,7 +13,9 @@ from raman_fitting.imports.spectrum.datafile_parsers import SPECTRUM_FILETYPE_PA
 from raman_fitting.models.deconvolution.spectrum_regions import RegionNames
 from .utils import get_package_version
 
+from rich.console import Console
 import typer
+
 
 LOCAL_INDEX_FILE = Path.cwd().joinpath(INDEX_FILE_NAME)
 LOCAL_CONFIG_FILE = Path.cwd().joinpath("raman_fitting.toml")
@@ -41,6 +43,8 @@ def version_callback(value: bool):
         print(f"{package_version}\n{typer_cli_version}")
         raise typer.Exit()
 
+
+console = Console()
 
 app = typer.Typer()
 state = {"verbose": False}
@@ -98,9 +102,15 @@ def run(
     kwargs = {"run_mode": run_mode, "use_multiprocessing": multiprocessing}
     if run_mode == RunModes.CURRENT_DIR:
         source_files, index_file, force_reindex = current_dir_prepare_index_kwargs()
-        initialize_index_from_source_files(
+        raman_index = initialize_index_from_source_files(
             files=source_files, index_file=index_file, force_reindex=force_reindex
         )
+        if not raman_index.dataset:
+            console.print(
+                f"No Raman files could be indexed in {Path.cwd()}", style="bold red"
+            )
+            typer.Exit(code=1)
+
         kwargs.update({"index": index_file})
         # make config cwd
         dump_default_config(LOCAL_CONFIG_FILE)
@@ -123,7 +133,12 @@ def run(
     if index_file is not None:
         index_file = Path(index_file).resolve()
         if not index_file.exists():
-            raise FileNotFoundError(f"File does not exist. {index_file} ")
+            console.print(
+                f"Index file does not exist but is required. {index_file}",
+                style="bold red",
+            )
+            typer.Exit(code=1)
+
         kwargs.update({"index": index_file})
     if fit_models:
         kwargs.update({"fit_model_region_names": fit_models})
@@ -144,8 +159,9 @@ def run(
         log_file = Path(log_file).resolve()
         logger.add(log_file, level=log_level, rotation="10 MB")
 
-    typer.echo(f"Starting raman_fitting with CLI run mode: {run_mode}")
-    typer.echo(f"Starting raman_fitting with CLI kwargs: {kwargs}")
+    console.print(
+        f"Starting raman_fitting with CLI run mode: {run_mode}\nand kwargs: {kwargs}"
+    )
     _main_run = MainDelegator(**kwargs)
     logger.disable("raman_fitting")
 
