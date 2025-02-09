@@ -106,6 +106,7 @@ class MainDelegator:
     def select_fitting_model(
         self, region_name: RegionNames, model_name: str
     ) -> BaseLMFitModel:
+        """Select a fitting model by region and model name."""
         try:
             return self.lmfit_models[region_name][model_name]
         except KeyError as exc:
@@ -120,7 +121,8 @@ def main_run(
     selected_models: LMFitModelCollection,
     use_multiprocessing: bool,
     fit_model_region_names: Sequence[RegionNames],
-) -> Dict[str, Any] | None:
+) -> Dict[str, Any]:
+    """Main function to run the processing of Raman spectra."""
     try:
         selection = select_samples_from_index(
             index, select_sample_groups, select_sample_ids
@@ -142,7 +144,8 @@ def main_run(
     return results
 
 
-def log_results(results) -> None:
+def log_results(results: Dict[str, Any]) -> None:
+    """Log the results of the processing."""
     if results:
         logger.debug("Results: {}", results)
     else:
@@ -157,22 +160,22 @@ def initialize_index(
     force_reindex: bool = False,
     persist_index: bool = False,
 ) -> RamanFileIndex:
+    """Initialize the index for Raman spectra files."""
     if isinstance(index, RamanFileIndex):
         return index
 
     if run_mode_paths is None:
         raise ValueError("Run mode paths are not initialized.")
-    else:
-        index = get_or_create_index(
-            index,
-            directory=run_mode_paths.dataset_dir,
-            suffixes=suffixes,
-            exclusions=exclusions,
-            index_file=run_mode_paths.index_file,
-            force_reindex=force_reindex,
-            persist_index=persist_index,
-        )
 
+    index = get_or_create_index(
+        index,
+        directory=run_mode_paths.dataset_dir,
+        suffixes=suffixes,
+        exclusions=exclusions,
+        index_file=run_mode_paths.index_file,
+        force_reindex=force_reindex,
+        persist_index=persist_index,
+    )
     return index
 
 
@@ -181,6 +184,7 @@ def initialize_selection(
     select_sample_groups: Sequence[str],
     select_sample_ids: Sequence[str],
 ) -> Sequence[RamanFileInfo]:
+    """Initialize the selection of samples from the index."""
     return select_samples_from_index(index, select_sample_groups, select_sample_ids)
 
 
@@ -189,6 +193,7 @@ def initialize_models(
     model_names: Sequence[str],
     provided_models: LMFitModelCollection,
 ) -> LMFitModelCollection:
+    """Initialize the models for fitting."""
     return select_models_from_provided_models(
         region_names=region_names,
         model_names=model_names,
@@ -202,6 +207,7 @@ def process_selection(
     use_multiprocessing: bool,
     run_mode_paths: RunModePaths,
 ) -> Dict[str, Any]:
+    """Process the selection of samples."""
     results = {}
     for group_name, grp in group_by_sample_group(selection):
         results[group_name] = process_group(
@@ -217,6 +223,7 @@ def process_group(
     use_multiprocessing: bool,
     run_mode_paths: RunModePaths,
 ) -> Dict[str, Any]:
+    """Process a group of samples."""
     results = {}
     for sample_id, sample_id_grp in group_by_sample_id(grp):
         results[sample_id] = process_sample(
@@ -238,6 +245,7 @@ def process_sample(
     use_multiprocessing: bool,
     run_mode_paths: RunModePaths,
 ) -> Dict[str, Any]:
+    """Process a single sample."""
     if not sample_id_grp:
         _error_msg = ERROR_MSG_TEMPLATE.format(group_name, sample_id, "group is empty")
         logger.debug(_error_msg)
@@ -265,6 +273,7 @@ def get_results_over_selected_models(
     models: LMFitModelCollection,
     fit_model_results: Dict[str, Any],
 ) -> Dict[RegionNames, AggregatedSampleSpectrumFitResult]:
+    """Get results over selected models."""
     results = {}
     for region_name, region_grp in models.items():
         try:
@@ -287,12 +296,16 @@ def get_results_over_selected_models(
     return results
 
 
-def call_export_manager(run_mode, results) -> List[Dict[str, Any]]:
+def call_export_manager(
+    run_mode: RunModes, results: Dict[str, Any]
+) -> List[Dict[str, Any]]:
+    """Call the export manager to export the results."""
     export_manager = ExportManager(run_mode, results)
     return export_manager.export_files()
 
 
 def make_examples(**kwargs) -> MainDelegator:
+    """Create example instances of MainDelegator for testing."""
     _main_run = MainDelegator(
         run_mode=RunModes.PYTEST,
         fit_model_specific_names=["2peaks", "2nd_4peaks"],
