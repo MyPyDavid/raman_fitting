@@ -2,6 +2,7 @@ import pytest
 
 from raman_fitting.config.path_settings import RunModes
 from raman_fitting.delegating.main_delegator import MainDelegator
+from raman_fitting.imports.selectors import select_samples_from_index
 
 
 @pytest.fixture(scope="module")
@@ -21,7 +22,9 @@ def test_initialize_models(delegator):
 def test_delegator_index(delegator):
     assert delegator.index
     assert len(delegator.index.raman_files) == 5
-    selection = delegator.select_samples_from_index()
+    selection = select_samples_from_index(
+        delegator.index, delegator.select_sample_groups, delegator.select_sample_ids
+    )
     assert len(delegator.index.raman_files) == len(selection)
 
 

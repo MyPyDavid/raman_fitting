@@ -1,5 +1,6 @@
 from pydantic import ValidationError
 
+from raman_fitting.config.path_settings import RunModePaths
 from raman_fitting.delegating.run_fit_multi import run_fit_multiprocessing
 from raman_fitting.models.spectrum import SpectrumData
 from raman_fitting.models.deconvolution.base_model import LMFitModelCollection
@@ -18,6 +19,7 @@ def run_fit_over_selected_models(
     raman_files: list[RamanFileInfo],
     models: LMFitModelCollection,
     use_multiprocessing: bool = False,
+    file_paths: RunModePaths | None = None,
 ) -> dict[RegionNames, AggregatedSampleSpectrumFitResult]:
     results = {}
     for region_name, model_region_grp in models.items():

@@ -2,7 +2,6 @@ import pytest
 
 
 def test_call_version_on_package():
-    # Import your package (this should not trigger any logging)
     import raman_fitting
 
     version = raman_fitting.utils.version()
@@ -11,7 +10,6 @@ def test_call_version_on_package():
 
 @pytest.mark.slow
 def test_call_make_examples_on_package():
-    # Import your package (this should not trigger any logging)
     import raman_fitting
     from lmfit.model import ModelResult
 
