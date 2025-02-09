@@ -9,7 +9,7 @@ authors = [
   {name = "David Wallace", email = "mypydavid@proton.me"},
 ]
 description = "Python framework for the batch processing and deconvolution of raman spectra."
-readme = {file = "README.md", content-type = "text/markdown"}
+readme = "README.md"
 keywords = ["spectroscopy", "Raman", "fitting", "deconvolution", "batch processing", "carbonaceous materials"]
 classifiers = [
 	"License :: OSI Approved :: MIT License",
@@ -57,6 +57,7 @@ dev = [
 	"pydocstyle",
 	"black",
 	"ruff",
+	"pre-commit",
 	"bump-my-version",
 	{include-group = "pytest"}
 	]

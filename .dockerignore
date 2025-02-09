@@ -1,0 +1,19 @@
+.venv/
+# Ignore the 'data' and 'output' directories
+data/
+output/
+examples/
+
+# Ignore Python bytecode files and cache directories
+*.pyc
+*.pyo
+__pycache__/
+
+# Ignore any other unnecessary files (e.g., logs, test outputs)
+*.log
+*.bak
+*.swp
+
+# Optionally, ignore other common file types you don't want in the image
+*.git
+*.gitignore
