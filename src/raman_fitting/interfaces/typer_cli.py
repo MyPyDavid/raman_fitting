@@ -6,7 +6,7 @@ from enum import StrEnum, auto
 
 from raman_fitting.config.load_config_from_toml import dump_default_config
 from raman_fitting.config.path_settings import RunModes, INDEX_FILE_NAME
-from raman_fitting.delegating.main_delegator import MainDelegator
+from raman_fitting.delegators.main_delegator import MainDelegator
 from raman_fitting.imports.files.file_finder import FileFinder
 from raman_fitting.imports.files.file_indexer import initialize_index_from_source_files
 from raman_fitting.imports.spectrum.datafile_parsers import SPECTRUM_FILETYPE_PARSERS

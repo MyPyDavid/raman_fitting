@@ -1,7 +1,7 @@
 import pytest
 
 from raman_fitting.config.path_settings import RunModes
-from raman_fitting.delegating.main_delegator import MainDelegator
+from raman_fitting.delegators.main_delegator import MainDelegator
 from raman_fitting.imports.selectors import select_samples_from_index
 
 

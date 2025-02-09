@@ -14,7 +14,7 @@ from raman_fitting.models.fit_models import SpectrumFitModel
 
 from raman_fitting.config.path_settings import ExportPathSettings
 from raman_fitting.models.splitter import RegionNames
-from raman_fitting.delegating.models import AggregatedSampleSpectrumFitResult
+from raman_fitting.delegators.models import AggregatedSampleSpectrumFitResult
 
 from loguru import logger
 

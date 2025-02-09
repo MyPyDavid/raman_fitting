@@ -37,8 +37,8 @@ def get_expected_header_keys(
 
 def get_parser_method_for_filetype(
     filepath: Path, **kwargs
-) -> Callable[[Path], Dataset]:
-    "Get callable file parser function."
+) -> Callable[[Path, dict], Dataset]:
+    """Get callable file parser function."""
     suffix = filepath.suffix
     parser = SPECTRUM_FILETYPE_PARSERS[suffix]["method"]
     parser_kwargs = SPECTRUM_FILETYPE_PARSERS[suffix].get("kwargs", {})

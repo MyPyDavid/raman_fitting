@@ -15,4 +15,4 @@ if sys.version_info.major < 3 and sys.version_info.minor < 12:
 
 logger.disable("raman_fitting")
 
-from .delegating.main_delegator import make_examples  # noqa: E402, F401
+from .delegators.main_delegator import make_examples  # noqa: E402, F401

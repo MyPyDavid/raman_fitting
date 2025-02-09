@@ -26,14 +26,14 @@ from raman_fitting.imports.files.file_indexer import (
     get_or_create_index,
 )
 
-from raman_fitting.delegating.models import (
+from raman_fitting.delegators.models import (
     AggregatedSampleSpectrumFitResult,
 )
-from raman_fitting.delegating.pre_processing import (
+from raman_fitting.delegators.pre_processing import (
     prepare_aggregated_spectrum_from_files,
 )
 from raman_fitting.models.deconvolution.base_model import LMFitModelCollection
-from raman_fitting.delegating.run_fit_spectrum import run_fit_over_selected_models
+from raman_fitting.delegators.run_fit_spectrum import run_fit_over_selected_models
 
 
 from loguru import logger

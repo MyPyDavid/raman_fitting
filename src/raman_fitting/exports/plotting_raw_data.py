@@ -21,7 +21,7 @@ from raman_fitting.config.path_settings import (
     CLEAN_SPEC_REGION_NAME_PREFIX,
     ExportPathSettings,
 )
-from raman_fitting.delegating.models import AggregatedSampleSpectrumFitResult
+from raman_fitting.delegators.models import AggregatedSampleSpectrumFitResult
 
 from loguru import logger
 
