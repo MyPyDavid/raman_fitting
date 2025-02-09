@@ -1,3 +1,4 @@
+from typing import Sequence
 from pydantic import ValidationError
 
 from raman_fitting.config.path_settings import RunModePaths
@@ -16,7 +17,7 @@ from loguru import logger
 
 
 def run_fit_over_selected_models(
-    raman_files: list[RamanFileInfo],
+    raman_files: Sequence[RamanFileInfo],
     models: LMFitModelCollection,
     use_multiprocessing: bool = False,
     file_paths: RunModePaths | None = None,

@@ -339,20 +339,16 @@ def main():
     return raman_index
 
 
-if __name__ == "__main__":
-    main()
-
-
 def get_or_create_index(
     index: RamanFileIndex | FilePath | None,
     directory: Path | None = None,
-    suffixes: list[str] | None = None,
-    exclusions: list[str] | None = None,
+    suffixes: Sequence[str] = (),
+    exclusions: Sequence[str] = (),
     index_file: Path | None = None,
     force_reindex: bool = False,
     persist_index: bool = False,
 ) -> RamanFileIndex:
-    if index is None:
+    if index is None and directory is not None:
         return find_files_and_initialize_index(
             directory=directory,
             suffixes=suffixes,
@@ -366,3 +362,7 @@ def get_or_create_index(
         return index
     else:
         raise TypeError(f"can not handle index of type {type(index)} ")
+
+
+if __name__ == "__main__":
+    main()

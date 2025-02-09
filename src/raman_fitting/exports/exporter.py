@@ -10,14 +10,13 @@ from raman_fitting.config import settings
 from raman_fitting.exports.plotting_fit_results import fit_spectrum_plot
 from raman_fitting.exports.plotting_raw_data import raw_data_spectra_plot
 
-
 from loguru import logger
 
 from .models import ExportResultSet
 
 
 class ExporterError(Exception):
-    """Error occured during the exporting functions"""
+    """Error occurred during the exporting functions"""
 
 
 @dataclass
@@ -31,8 +30,7 @@ class ExportManager:
             self.run_mode, user_package_home=settings.destination_dir
         )
 
-    def export_files(self):
-        # breakpoint() self.results
+    def export_files(self) -> list[Dict[str, Any]]:
         exports = []
         for group_name, group_results in self.fit_results.items():
             for sample_id, sample_results in group_results.items():
@@ -54,7 +52,7 @@ class ExportManager:
                     )
                     export_results += fit_spectrum_plot_results
                 except Exception as exc:
-                    logger.error(f"plotting error fit_spectrum_plot: {exc}")
+                    logger.error(f"Plotting error, fit_spectrum_plot: {exc}")
                     raise exc from exc
 
                 exports.append(
