@@ -29,12 +29,17 @@ def example_files(internal_paths):
 
 
 @pytest.fixture(autouse=True)
-def default_definitions(internal_paths):
+def default_definitions():
     return settings.default_definitions
 
 
 @pytest.fixture(autouse=True)
-def default_models(internal_paths):
+def default_regions():
+    return settings.default_regions
+
+
+@pytest.fixture(autouse=True)
+def default_models():
     return settings.default_models
 
 

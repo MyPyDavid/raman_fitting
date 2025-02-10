@@ -9,25 +9,25 @@ authors = [
   {name = "David Wallace", email = "mypydavid@proton.me"},
 ]
 description = "Python framework for the batch processing and deconvolution of raman spectra."
-readme = {file = "README.md", content-type = "text/markdown"}
+readme = "README.md"
 keywords = ["spectroscopy", "Raman", "fitting", "deconvolution", "batch processing", "carbonaceous materials"]
 classifiers = [
 	"License :: OSI Approved :: MIT License",
 	"Natural Language :: English",
 	"Programming Language :: Python",
 	"Programming Language :: Python :: 3 :: Only",
-	"Programming Language :: Python :: 3.11",
+	"Programming Language :: Python :: 3.12",
 	"Programming Language :: Python :: Implementation :: CPython",
 	"Programming Language :: Python :: Implementation :: PyPy",
 	"Intended Audience :: Science/Research",
 	"Topic :: Scientific/Engineering :: Physics",
 	"Topic :: Scientific/Engineering :: Chemistry",
 ]
+requires-python = ">=3.12"
 dynamic = ["version"]
 dependencies = [
-	"pandas~=2.1.2",
-	"scipy~=1.11.3",
-	"lmfit~=1.2.2",
+	"scipy~=1.15.1",
+	"lmfit~=1.3.2",
 	"matplotlib~=3.8.0",
 	"numpy~=1.26.1",
 	"tablib~=3.5.0",
@@ -35,15 +35,17 @@ dependencies = [
 	"pydantic-settings>=2.1",
 	"pydantic_numpy>=4.1",
 	"loguru>=0.7",
-	"typer[all]",
+	"typer>=0.13.1",
 	"mpire[dill]~=2.10.0",
+	"tomli-w>=1.0.0"
 ]
 
-[project.optional-dependencies]
+[dependency-groups]
 pytest = [
 	"pytest",
 	"pytest-cov",
 	"pytest-flake8",
+	"pytest-loguru",
 	"mock",
 	"wheel"
 	]
@@ -54,9 +56,14 @@ dev = [
 	"autopep8",
 	"pydocstyle",
 	"black",
-	"bump2version",
-	"raman_fitting[pytest]"
+	"ruff",
+	"pre-commit",
+	"bump-my-version",
+	{include-group = "pytest"}
 	]
+all = [
+	{include-group = "dev"},
+]
 
 [project.urls]
 homepage = "https://pypi.org/project/raman-fitting/"
@@ -68,10 +75,7 @@ raman_fitting = "raman_fitting.interfaces.typer_cli:app"
 
 
 [tool.hatch.version]
-source = "vcs"
-
-[tool.hatch.build.hooks.vcs]
-version-file = "src/raman_fitting/_version.py"
+path = "src/raman_fitting/__about__.py"
 
 [tool.hatch.build.targets.sdist]
 exclude = ["/profiling"]
@@ -86,10 +90,21 @@ minversion = "7.0"
 pythonpath = "src"
 addopts = [
     "--import-mode=importlib",
-    "-ra -q",
-    "--cov",
-    "--cov-report term-missing html xml annotate",
+    "-ra",
+	"-q",
+	"--cov=src",  # Ensure the correct path is specified here
+    "--cov-report=term-missing",
+    "--cov-report=html",
+    "--cov-report=xml",
+	"--strict-markers",
+	"-m",
+    "not slow"
 ]
+markers = [
+    "slow: marks tests as slow (deselect with '-m \"not slow\"')",
+    "serial",
+]
+
 testpaths = [
     "tests",
 ]
@@ -131,14 +146,18 @@ commit = true
 commit_args = "--no-verify"
 message = "Bump version: {current_version} → {new_version}"
 tag = true
-allow_dirty = true
-tag_name = "{new_version}"
+allow_dirty = false
+tag_name = "v{new_version}"
 tag_message = "Bump version: {current_version} → {new_version}"
-parse = "(?P<major>\\d+)\\.(?P<minor>\\d+)\\.(?P<patch>\\d+)(\\.dev(?P<dev>\\d+))?"
-serialize =[
-    "{major}.{minor}.{patch}.dev{dev}",
+parse = "(?P<major>\\d+)\\.(?P<minor>\\d+)\\.(?P<patch>\\d+)(\\.(?P<dev>post)\\d+\\.dev\\d+)?"
+serialize = [
+    "{major}.{minor}.{patch}.{dev}{$PR_NUMBER}.dev{distance_to_latest_tag}",
     "{major}.{minor}.{patch}"
 ]
+pre_commit_hooks = ["uv sync --upgrade", "git add uv.lock"]
+
+[[tool.bumpversion.files]]
+filename = "bumpversion/__init__.py"
 
 [[tool.bumpversion.files]]
 filename= "README.md"
@@ -149,3 +168,7 @@ replace = "The current version is v{new_version}"
 filename= "pyproject.toml"
 search = "current_version = '{current_version}'"
 replace = "current_version = '{new_version}'"
+
+[tool.bumpversion.parts.pre_l]
+values = ["dev", "rc", "final"]
+optional_value = "final"

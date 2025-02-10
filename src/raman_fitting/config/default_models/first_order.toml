@@ -1,6 +1,12 @@
-[first_order]
+[spectrum]
 
-[first_order.models]
+[spectrum.regions.first_order]
+
+[spectrum.regions.first_order.limits]
+min = 900
+max = 2000
+
+[spectrum.regions.first_order.models]
 1peak = "G"
 2peaks = "G+D"
 3peaks = "G+D+D3"
@@ -8,9 +14,9 @@
 5peaks = "G+D+D2+D3+D4"
 6peaks = "G+D+D2+D3+D4+D5"
 
-[first_order.peaks]
+[spectrum.regions.first_order.peaks]
 
-[first_order.peaks.G]
+[spectrum.regions.first_order.peaks.G]
 docstring = """
 Graphite belongs to the P63/mmc (D46h) space group. If considering only a graphene plane, at
 the Ã point of the Brillouin zone, there are six normal modes that possess only one mode (doubly
@@ -23,13 +29,13 @@ Für G: 1580-1590 D5 und D2 weiß ich nicht
 """
 peak_name = "G"
 peak_type = "Lorentzian"
-[first_order.peaks.G.param_hints]
+[spectrum.regions.first_order.peaks.G.param_hints]
 center = {value = 1571, min = 1545, max = 1595}
 sigma = {value = 30, min = 5, max = 150}
 amplitude = {value = 100, min = 1e-05, max = 500}
 
 
-[first_order.peaks.D]
+[spectrum.regions.first_order.peaks.D]
 docstring = """
 D or D1 ; Disordered graphitic lattice (graphene layer edges,A1gsymmetry)
 A defective graphite presents other bands that can be as intense as the G band at D=1350 and D'=1615 cm-1
@@ -38,12 +44,12 @@ Für D1: 1340-1350
 """
 peak_name = "D"
 peak_type = "Lorentzian"
-[first_order.peaks.D.param_hints]
+[spectrum.regions.first_order.peaks.D.param_hints]
 center = {value = 1350, min = 1330, max = 1380}
 sigma = {value = 35, min = 1, max = 150}
 amplitude = {value = 120, min = 1e-05, max = 500}
 
-[first_order.peaks.D2]
+[spectrum.regions.first_order.peaks.D2]
 docstring = """
 D2 or D' ; Right next to the G peak, sometimes not obvious as G peak split.
 Disordered graphitic lattice (surface graphene layers,E2g-symmetry)
@@ -51,13 +57,13 @@ j.molstruc.2010.12.065
 """
 peak_name = "D2"
 peak_type = "Lorentzian"
-[first_order.peaks.D2.param_hints]
+[spectrum.regions.first_order.peaks.D2.param_hints]
 center = {value = 1606, min = 1592, max = 1635}
 sigma = {value = 30, min = 5, max = 150}
 amplitude = {value = 35, min = 5, max = 500}
 
 
-[first_order.peaks.D3]
+[spectrum.regions.first_order.peaks.D3]
 docstring = """
 D3 or D'' or A or Am ; Between the D and G peak, sometimes too broad.
 For amorphous carbon (Gaussian[26]or Lorentzian[3,18,27]line shape).
@@ -65,12 +71,12 @@ Für D3: 1495-1515
 """
 peak_name = "D3"
 peak_type = "Lorentzian"
-[first_order.peaks.D3.param_hints]
+[spectrum.regions.first_order.peaks.D3.param_hints]
 center = {value = 1480, min = 1450, max = 1525}
 sigma = {value = 25, min = 1, max = 150}
 amplitude = {value = 25, min = 1e-02, max = 500}
 
-[first_order.peaks.D4]
+[spectrum.regions.first_order.peaks.D4]
 docstring = """
 D4 or I ; Below D band, a shoulder sometimes split with D5 band.
 Disordered graphitic lattice (A1gsymmetry)[10],polyenes[3,27], ionic impurities
@@ -80,24 +86,24 @@ Für D4: 1185-1210, but depends on if there is D5 or not.
 """
 peak_name = "D4"
 peak_type = "Lorentzian"
-[first_order.peaks.D4.param_hints]
+[spectrum.regions.first_order.peaks.D4.param_hints]
 center = {value = 1230, min = 1180, max = 1310}
 sigma = {value = 40, min = 1, max = 150}
 amplitude = {value = 20, min = 1e-02, max = 200}
 
-[first_order.peaks.D5]
+[spectrum.regions.first_order.peaks.D5]
 docstring = """
 D5 peak at 1110 cm−1. At lowest should of D peak, below D4.
 Ref: Jurkiewicz, K., Pawlyta, M., Zygadło, D. et al. J Mater Sci (2018) 53: 3509. https://doi.org/10.1007/s10853-017-1753-7
 """
 peak_name = "D5"
 peak_type = "Lorentzian"
-[first_order.peaks.D5.param_hints]
+[spectrum.regions.first_order.peaks.D5.param_hints]
 center = {value = 1110, min = 1080, max = 1150}
 sigma = {value = 40, min = 1, max = 150}
 amplitude = {value = 20, min = 1e-02, max = 200}
 
-[first_order.peaks.Si1]
+[spectrum.regions.first_order.peaks.Si1]
 docstring =  """
 ===== Extra peak at ca. 960 cm-1 presumably from Si substrate 2nd order === not from Nafion...
 => Either cut the Spectra 1000-2000
@@ -106,7 +112,7 @@ docstring =  """
 peak_name = "Si1"
 peak_type = "Gaussian"
 is_substrate = true
-[first_order.peaks.Si1.param_hints]
+[spectrum.regions.first_order.peaks.Si1.param_hints]
 center = {value = 960, min = 900, max = 980}
 sigma = {value = 10, min = 0, max = 150}
 amplitude = {value = 10, min = 0, max = 200}

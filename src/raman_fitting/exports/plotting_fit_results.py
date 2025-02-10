@@ -14,13 +14,15 @@ from raman_fitting.models.fit_models import SpectrumFitModel
 
 from raman_fitting.config.path_settings import ExportPathSettings
 from raman_fitting.models.splitter import RegionNames
-from raman_fitting.delegating.models import AggregatedSampleSpectrumFitResult
+from raman_fitting.delegators.models import AggregatedSampleSpectrumFitResult
 
 from loguru import logger
 
+from .models import ExportResultSet, ExportResult
 
 matplotlib.rcParams.update({"font.size": 14})
 FIT_REPORT_MIN_CORREL = 0.7
+DEFAULT_SECOND_ORDER_MODEL = "2nd_4peaks"
 
 
 def fit_spectrum_plot(
@@ -28,23 +30,40 @@ def fit_spectrum_plot(
     export_paths: ExportPathSettings | None = None,
     plot_annotation=True,
     plot_residuals=True,
-):  # pragma: no cover
-    first_order = aggregated_spectra[RegionNames.first_order]
-    second_order = aggregated_spectra[RegionNames.second_order]
+) -> ExportResultSet:  # pragma: no cover
+    export_results = ExportResultSet()
+    for region_name, region_aggregated_spectrum in aggregated_spectra.items():
+        sources = region_aggregated_spectrum.aggregated_spectrum.sources
+        sample = sources[0].file_info.sample
 
-    sources = first_order.aggregated_spectrum.sources
-    sample = sources[0].file_info.sample
-    second_model_name = "2nd_4peaks"
-    second_model = second_order.fit_model_results.get(second_model_name)
-    for first_model_name, first_model in first_order.fit_model_results.items():
-        prepare_combined_spectrum_fit_result_plot(
-            first_model,
-            second_model,
-            sample,
-            export_paths,
-            plot_annotation=plot_annotation,
-            plot_residuals=plot_residuals,
-        )
+        second_model = None
+        if (
+            region_name == RegionNames.FIRST_ORDER
+            and RegionNames.SECOND_ORDER in aggregated_spectra
+        ):
+            second_order = aggregated_spectra[RegionNames.SECOND_ORDER]
+            second_model = second_order.fit_model_results.get(
+                DEFAULT_SECOND_ORDER_MODEL
+            )
+        for (
+            model_name,
+            current_model,
+        ) in region_aggregated_spectrum.fit_model_results.items():
+            logger.warning(
+                f"Starting to plot for {sample.id}, {region_name} {model_name}."
+            )
+
+            export_result = prepare_combined_spectrum_fit_result_plot(
+                current_model,
+                second_model,
+                sample,
+                export_paths,
+                plot_annotation=plot_annotation,
+                plot_residuals=plot_residuals,
+            )
+            if export_result is not None:
+                export_results += export_result
+    return export_results
 
 
 def prepare_combined_spectrum_fit_result_plot(
@@ -54,14 +73,14 @@ def prepare_combined_spectrum_fit_result_plot(
     export_paths: ExportPathSettings,
     plot_annotation=True,
     plot_residuals=True,
-):
+) -> ExportResult:
+    first_model_name = first_model.model.name
+
     plt.figure(figsize=(28, 24))
     gs = gridspec.GridSpec(4, 1, height_ratios=[4, 1, 4, 1])
     ax = plt.subplot(gs[0])
     ax_res = plt.subplot(gs[1])
-    ax.set_title(f"{sample.id}")
-
-    first_model_name = first_model.model.name
+    ax.set_title(f"{sample.id}, {first_model_name}")
 
     fit_plot_first(ax, ax_res, first_model, plot_residuals=plot_residuals)
     _bbox_artists = None
@@ -86,6 +105,7 @@ def prepare_combined_spectrum_fit_result_plot(
     set_axes_labels_and_legend(ax)
 
     plot_special_si_components(ax, first_model)
+    result = None
     if export_paths is not None:
         savepath = export_paths.plots.joinpath(f"Model_{first_model_name}").with_suffix(
             ".png"
@@ -96,8 +116,13 @@ def prepare_combined_spectrum_fit_result_plot(
             bbox_extra_artists=_bbox_artists,
             bbox_inches="tight",
         )
-        logger.debug(f"Plot saved to {savepath}")
+        _msg = (
+            f"Plot saved with prepare_combined_spectrum_fit_result_plot to {savepath}"
+        )
+        logger.debug(_msg)
+        result = ExportResult(target=savepath, message=_msg)
     plt.close()
+    return result
 
 
 def fit_plot_first(

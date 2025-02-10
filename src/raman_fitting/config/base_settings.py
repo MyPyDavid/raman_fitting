@@ -14,7 +14,7 @@ from raman_fitting.models.deconvolution.base_model import (
 from raman_fitting.models.deconvolution.spectrum_regions import (
     get_default_regions_from_toml_files,
 )
-from .default_models import load_config_from_toml_files
+from .load_config_from_toml import load_config_from_toml_files
 from .path_settings import create_default_package_dir_or_ask, InternalPathSettings
 from types import MappingProxyType
 

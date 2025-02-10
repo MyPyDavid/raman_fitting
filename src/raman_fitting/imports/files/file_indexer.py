@@ -1,6 +1,6 @@
 """Indexer for raman data files"""
 
-from itertools import filterfalse, groupby
+from itertools import groupby
 from pathlib import Path
 from typing import List, Sequence, TypeAlias
 
@@ -11,6 +11,7 @@ from pydantic import (
     Field,
     FilePath,
     NewPath,
+    computed_field,
     model_validator,
 )
 from raman_fitting.config import settings
@@ -21,10 +22,16 @@ from raman_fitting.imports.files.utils import (
 )
 from raman_fitting.imports.models import RamanFileInfo
 from tablib import Dataset
+from tablib.exceptions import InvalidDimensions
 
-from raman_fitting.imports.spectrum import SPECTRUM_FILETYPE_PARSERS
+from raman_fitting.imports.spectrum.datafile_parsers import SPECTRUM_FILETYPE_PARSERS
+from raman_fitting.imports.files.file_finder import FileFinder
 
 RamanFileInfoSet: TypeAlias = Sequence[RamanFileInfo]
+
+
+class IndexValidationError(ValueError):
+    pass
 
 
 class RamanFileIndex(BaseModel):
@@ -32,54 +39,112 @@ class RamanFileIndex(BaseModel):
 
     index_file: NewPath | FilePath | None = Field(None, validate_default=False)
     raman_files: RamanFileInfoSet | None = Field(None)
-    dataset: Dataset | None = Field(None)
-    force_reindex: bool = Field(False, validate_default=False)
-    persist_to_file: bool = Field(True, validate_default=False)
+    force_reindex: bool = Field(default=False, validate_default=False)
+    persist_to_file: bool = Field(default=True, validate_default=False)
 
-    @model_validator(mode="after")
-    def read_or_load_data(self) -> "RamanFileIndex":
-        if not any([self.index_file, self.raman_files, self.dataset]):
-            raise ValueError("Not all fields should be empty.")
+    @computed_field
+    @property
+    def dataset(self) -> Dataset | None:
+        if self.raman_files is None or not self.raman_files:
+            logger.debug("No raman files provided for index.")
+            return None
 
-        reload_from_file = validate_reload_from_index_file(
-            self.index_file, self.force_reindex
-        )
-        if reload_from_file:
-            self.dataset = load_dataset_from_file(self.index_file)
-            if not self.raman_files and self.dataset:
-                self.raman_files = parse_dataset_to_index(self.dataset)
-                return self
+        if can_load_from_index_file(self.index_file, self.force_reindex):
+            dataset = load_dataset_from_file(self.index_file)
+            return dataset
 
-        if self.raman_files is not None:
-            dataset_rf = cast_raman_files_to_dataset(self.raman_files)
-            if self.dataset is not None:
-                assert (
-                    dataset_rf == self.dataset
-                ), "Both dataset and raman_files provided and they are different."
-            self.dataset = dataset_rf
+        return cast_raman_files_to_dataset(self.raman_files)
 
-        if self.dataset is not None:
-            self.raman_files = parse_dataset_to_index(self.dataset)
+    def __len__(self) -> int:
+        if self.raman_files is None:
+            return 0
+        return len(self.raman_files)
 
-        if self.raman_files is None and self.dataset is None:
-            raise ValueError(
-                "Index error, both raman_files and dataset are not provided."
+    def __repr__(self):
+        return f"{self.__class__.__name__}({len(self.dataset)})"
+
+
+def load_data_from_file(index_file) -> Dataset:
+    return load_dataset_from_file(index_file)
+
+
+def validate_and_set_dataset(index: RamanFileIndex) -> None:
+    if index.dataset is None:
+        if index.raman_files is None:
+            raise IndexValidationError(
+                "Index error, No dataset or raman_files provided."
             )
+        elif not index.raman_files:
+            raise IndexValidationError(
+                "Index error, raman_files is empty and dataset not provided"
+            )
+        return
 
-        if self.persist_to_file and self.index_file is not None:
-            write_dataset_to_file(self.index_file, self.dataset)
+    if not index.raman_files:
+        return  # can not compare if raman_files is empty
 
-        return self
+    dataset_rf = cast_raman_files_to_dataset(index.raman_files)
+    if dataset_rf is not None:
+        if dataset_rf.headers != index.dataset.headers:
+            raise IndexValidationError("Headers are different.")
+
+        if len(dataset_rf) != len(index.dataset):
+            raise IndexValidationError("Length of datasets are different.")
+
+        _errors = []
+        for row1, row2 in zip(dataset_rf.dict, index.dataset.dict):
+            if row1 != row2:
+                _errors.append(f"Row1: {row1} != Row2: {row2}")
+        if _errors:
+            raise IndexValidationError(f"Errors: {_errors}")
 
 
-def validate_reload_from_index_file(
-    index_file: Path | None, force_reindex: bool
-) -> bool:
+def set_raman_files_from_dataset(index: RamanFileIndex) -> None:
+    if index.dataset is not None:
+        index.raman_files = parse_dataset_to_raman_files_info(index.dataset)
+
+
+def persist_dataset_to_file(index: RamanFileIndex) -> None:
+    if (
+        index.persist_to_file
+        and index.index_file is not None
+        and index.dataset is not None
+    ):
+        if len(index.dataset) == 0:
+            logger.warning("Dataset is empty, not writing to file.")
+            return
+        write_dataset_to_file(index.index_file, index.dataset)
+
+
+def read_or_load_data(index: RamanFileIndex) -> None:
+    if not any([index.index_file, index.raman_files, index.dataset]):
+        raise ValueError("Not all fields should be empty.")
+    can_can_reload_from_file = can_load_from_index_file(
+        index.index_file, index.force_reindex
+    )
+    if can_can_reload_from_file:
+        load_data_from_file(index.index_file)
+        return
+
+    validate_and_set_dataset(index)
+
+    set_raman_files_from_dataset(index)
+
+    if not index.raman_files and index.dataset is None:
+        raise ValueError("Index error, both raman_files and dataset are not provided.")
+    elif len(index.dataset) == 0:
+        raise ValueError("Index error, dataset is empty.")
+
+    persist_dataset_to_file(index)
+
+
+def can_load_from_index_file(index_file: Path | None, force_reindex: bool) -> bool:
     if index_file is None:
         logger.debug(
             "Index file not provided, index will not be reloaded or persisted."
         )
         return False
+
     if index_file.exists() and not force_reindex:
         return True
     elif force_reindex:
@@ -93,15 +158,23 @@ def validate_reload_from_index_file(
     return False
 
 
-def cast_raman_files_to_dataset(raman_files: RamanFileInfoSet) -> Dataset:
-    headers = list(RamanFileInfo.model_fields.keys())
+def cast_raman_files_to_dataset(raman_files: RamanFileInfoSet) -> Dataset | None:
+    headers = list(RamanFileInfo.model_fields.keys()) + list(
+        RamanFileInfo.model_computed_fields.keys()
+    )
     data = Dataset(headers=headers)
     for file in raman_files:
-        data.append(file.model_dump(mode="json").values())
+        try:
+            data.append(file.model_dump(mode="json").values())
+        except InvalidDimensions as e:
+            logger.error(f"Error adding file to dataset: {e}")
+    if len(data) == 0:
+        logger.error(f"No data was added to the dataset for {len(raman_files)} files.")
+        return None
     return data
 
 
-def parse_dataset_to_index(dataset: Dataset) -> RamanFileInfoSet:
+def parse_dataset_to_raman_files_info(dataset: Dataset) -> RamanFileInfoSet:
     raman_files = []
     for row in dataset:
         row_data = dict(zip(dataset.headers, row))
@@ -111,8 +184,8 @@ def parse_dataset_to_index(dataset: Dataset) -> RamanFileInfoSet:
 
 class IndexSelector(BaseModel):
     raman_files: Sequence[RamanFileInfo]
-    sample_ids: List[str] = Field(default_factory=list)
-    sample_groups: List[str] = Field(default_factory=list)
+    sample_ids: Sequence[str] = Field(default_factory=list)
+    sample_groups: Sequence[str] = Field(default_factory=list)
     selection: Sequence[RamanFileInfo] = Field(default_factory=list)
 
     @model_validator(mode="after")
@@ -121,43 +194,49 @@ class IndexSelector(BaseModel):
         if not any([self.sample_groups, self.sample_ids]):
             self.selection = rf_index
             logger.debug(
-                f"{self.__class__.__qualname__} selected {len(self.selection)} of {len(rf_index)}. "
+                f"{self.__class__.__qualname__} did not get any query parameters, selected {len(self.selection)} of {len(rf_index)}. "
             )
             return self
-        else:
+
+        _pre_selected_samples = {i.sample.id for i in rf_index}
+        rf_selection_index = []
+        if self.sample_groups:
             rf_index_groups = list(
                 filter(lambda x: x.sample.group in self.sample_groups, rf_index)
             )
             _pre_selected_samples = {i.sample.id for i in rf_index_groups}
-            selected_sample_ids = filterfalse(
-                lambda x: x in _pre_selected_samples, self.sample_ids
+            rf_selection_index += rf_index_groups
+
+        if self.sample_ids:
+            selected_sample_ids = list(
+                filter(lambda x: x in self.sample_ids, _pre_selected_samples)
             )
             rf_index_samples = list(
                 filter(lambda x: x.sample.id in selected_sample_ids, rf_index)
             )
-            rf_selection_index = rf_index_groups + rf_index_samples
-            self.selection = rf_selection_index
-            logger.debug(
-                f"{self.__class__.__qualname__} selected {len(self.selection)} of {rf_index}. "
-            )
-            return self
+            rf_selection_index += rf_index_samples
+        self.selection = rf_selection_index
+        logger.debug(
+            f"{self.__class__.__qualname__} selected {len(self.selection)} of {len(rf_index)}. "
+        )
+        return self
 
 
-def groupby_sample_group(index: RamanFileInfoSet):
+def group_by_sample_group(index: RamanFileInfoSet):
     """Generator for Sample Groups, yields the name of group and group of the index SampleGroup"""
     grouper = groupby(index, key=lambda x: x.sample.group)
     return grouper
 
 
-def groupby_sample_id(index: RamanFileInfoSet):
+def group_by_sample_id(index: RamanFileInfoSet):
     """Generator for SampleIDs, yields the name of group, name of SampleID and group of the index of the SampleID"""
     grouper = groupby(index, key=lambda x: x.sample.id)
     return grouper
 
 
 def iterate_over_groups_and_sample_id(index: RamanFileInfoSet):
-    for grp_name, grp in groupby_sample_group(index):
-        for sample_id, sgrp in groupby_sample_group(grp):
+    for grp_name, grp in group_by_sample_group(index):
+        for sample_id, sgrp in group_by_sample_group(grp):
             yield grp_name, grp, sample_id, sgrp
 
 
@@ -180,16 +259,22 @@ def select_index(
 
 def collect_raman_file_index_info(
     raman_files: Sequence[Path] | None = None, **kwargs
-) -> RamanFileInfoSet:
+) -> RamanFileInfoSet | None:
     """loops over the files and scrapes the index data from each file"""
+    if raman_files is None:
+        return None
     raman_files = list(raman_files)
-    total_files = []
-    dirs = [i for i in raman_files if i.is_dir()]
-    files = [i for i in raman_files if i.is_file()]
+    dirs, files, total_files = [], [], []
+    for f in raman_files:
+        f_ = f.resolve()
+        if f_.is_dir():
+            dirs.append(f_)
+        elif f_.is_file():
+            files.append(f_)
     total_files += files
     suffixes = [i.lstrip(".") for i in SPECTRUM_FILETYPE_PARSERS.keys()]
     for d1 in dirs:
-        paths = [path for i in suffixes for path in d1.glob(f"*.{i}")]
+        paths = [path for i in suffixes for path in d1.rglob(f"*.{i}")]
         total_files += paths
     index, files = collect_raman_file_infos(total_files, **kwargs)
     logger.info(f"successfully made index {len(index)} from {len(files)} files")
@@ -200,16 +285,42 @@ def initialize_index_from_source_files(
     files: Sequence[Path] | None = None,
     index_file: Path | None = None,
     force_reindex: bool = False,
+    persist_to_file: bool = False,
 ) -> RamanFileIndex:
     raman_files = collect_raman_file_index_info(raman_files=files)
-    # breakpoint()
+    if not raman_files:
+        logger.warning("No raman files were found.")
+        return RamanFileIndex(raman_files=None, index_file=None)
+
     raman_index = RamanFileIndex(
-        index_file=index_file, raman_files=raman_files, force_reindex=force_reindex
+        index_file=index_file,
+        raman_files=raman_files,
+        force_reindex=force_reindex,
+        persist_to_file=persist_to_file,
     )
-    logger.info(
-        f"index_delegator index prepared with len {len(raman_index.raman_files)}"
-    )
+    if len(raman_index) == 0:
+        logger.warning("Index is empty, no raman files were found.")
+    else:
+        logger.info(f"index prepared with len {len(raman_index)}")
+    # read_or_load_data(raman_index)  # Directly call read_or_load_data
     return raman_index
+
+
+def find_files_and_initialize_index(
+    directory: Path,
+    suffixes: Sequence[str],
+    exclusions: Sequence[str],
+    index_file: FilePath,
+) -> RamanFileIndex:
+    file_finder = FileFinder(
+        directory=directory,
+        suffixes=suffixes,
+        exclusions=exclusions,
+    )
+    index = initialize_index_from_source_files(
+        files=file_finder.files, index_file=index_file, force_reindex=True
+    )
+    return index
 
 
 def main():
@@ -226,6 +337,31 @@ def main():
         raman_index = None
 
     return raman_index
+
+
+def get_or_create_index(
+    index: RamanFileIndex | FilePath | None,
+    directory: Path | None = None,
+    suffixes: Sequence[str] = (),
+    exclusions: Sequence[str] = (),
+    index_file: Path | None = None,
+    force_reindex: bool = False,
+    persist_index: bool = False,
+) -> RamanFileIndex:
+    if index is None and directory is not None:
+        return find_files_and_initialize_index(
+            directory=directory,
+            suffixes=suffixes,
+            exclusions=exclusions,
+            index_file=index_file,
+        )
+
+    elif isinstance(index, Path):
+        return initialize_index_from_source_files(index_file=index, force_reindex=False)
+    elif isinstance(index, RamanFileIndex):
+        return index
+    else:
+        raise TypeError(f"can not handle index of type {type(index)} ")
 
 
 if __name__ == "__main__":

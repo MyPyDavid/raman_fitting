@@ -1,15 +1,10 @@
-#!/usr/bin/env python3
-# -*- coding: utf-8 -*-
-"""
-Created on Wed Apr 28 15:08:26 2021
+from typing import Sequence, Tuple, Dict
 
-@author: zmg
-"""
-
-from collections import namedtuple
-from typing import Sequence, Tuple
-
-from raman_fitting.models.splitter import RegionNames
+from raman_fitting.models.deconvolution.spectrum_regions import (
+    get_default_regions_from_toml_files,
+    SpectrumRegionLimits,
+    RegionNames,
+)
 
 import matplotlib.pyplot as plt
 from lmfit import Model as LMFitModel
@@ -20,30 +15,30 @@ from loguru import logger
 CMAP_OPTIONS_DEFAULT = ("Dark2", "tab20")
 DEFAULT_COLOR = (0.4, 0.4, 0.4, 1.0)
 COLOR_BLACK = (0, 0, 0, 1)  # black as fallback default color
+PLOT_AXES_WIDTH = 3
 
-ModelValidation = namedtuple("ModelValidation", "valid peak_group model_inst message")
-
-
-PLOT_REGION_AXES = {
-    RegionNames.full: (0, 0),
-    RegionNames.low: (0, 1),
-    RegionNames.first_order: (0, 2),
-    RegionNames.mid: (1, 1),
-    RegionNames.second_order: (1, 2),
-    RegionNames.normalization: (1, 0),
-}
+RAW_MEAN_SPEC_FMT = dict(c="k", alpha=0.7, lw=3)
+RAW_SOURCES_SPEC_FMT = dict(alpha=0.4, lw=2)
 
 
-class PeakValidationWarning(UserWarning):
-    pass
+def get_plot_region_axes(
+    nrows: int | None = None, regions: Dict[str, SpectrumRegionLimits] | None = None
+) -> Dict[RegionNames, Tuple[int, int]]:
+    if regions is None:
+        regions = get_default_regions_from_toml_files()
+    horizontal_axis = 0
+    nrows = PLOT_AXES_WIDTH if nrows is None else nrows
+    regions_axes = {}
+    for n, region in enumerate(regions.values()):
+        if "normalization" in region.name:
+            continue
+        _i = n + 1
+        vertical_axis = _i if _i <= nrows else _i % nrows
+        regions_axes[region.name] = (vertical_axis, horizontal_axis)
+        if not _i % nrows:
+            horizontal_axis += 1
 
-
-class NotFoundAnyModelsWarning(PeakValidationWarning):
-    pass
-
-
-class CanNotInitializeModelWarning(PeakValidationWarning):
-    pass
+    return regions_axes
 
 
 def get_cmap_list(

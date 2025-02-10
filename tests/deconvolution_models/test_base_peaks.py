@@ -75,7 +75,7 @@ def test_base_class_good_with_init_extra_tests():
     td1 = BasePeak(**td1_kwargs)
     assert td1.peak_type == "Voigt"
     assert td1.peak_name == "D1D1"
-    peakmod = "<lmfit.Model: Model(voigt, prefix='D1D1_')>"
+    peakmod = "Model(voigt, prefix='D1D1_')"
     assert str(td1.lmfit_model) == peakmod
     # _class_str = f"center : 2600 < 2650 > 2750"
     # assertIn(_class_str, str(td1))

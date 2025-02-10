@@ -13,31 +13,37 @@ from .deconvolution.spectrum_regions import (
 class SplitSpectrum(BaseModel):
     spectrum: SpectrumData
     region_limits: Dict[str, SpectrumRegionLimits] = Field(None, init_var=None)
-    spec_regions: Dict[str, SpectrumData] = Field(None, init_var=None)
+    spec_regions: Dict[str, SpectrumData] | None = Field(None, init_var=None)
     info: Dict[str, Any] = Field(default_factory=dict)
 
     @model_validator(mode="after")
-    def process_spectrum(self) -> "SplitSpectrum":
+    def spit_spectrum_into_regions(self) -> "SplitSpectrum":
         if self.region_limits is None:
-            region_limits = get_default_spectrum_region_limits()
-            self.region_limits = region_limits
+            self.region_limits = get_default_spectrum_region_limits()
 
         if self.spec_regions is not None:
+            if not all(isinstance(i, SpectrumData) for i in self.spec_regions.values()):
+                raise ValueError(
+                    "Not all spectrum regions are valid SpectrumData objects."
+                )
             return self
-        spec_regions = split_spectrum_data_in_regions(
+
+        self.spec_regions = split_spectrum_data_in_regions(
             self.spectrum.ramanshift,
             self.spectrum.intensity,
             spec_region_limits=self.region_limits,
             label=self.spectrum.label,
             source=self.spectrum.source,
         )
-        self.spec_regions = spec_regions
+
         return self
 
     def get_region(self, region_name: RegionNames):
+        if self.spec_regions is None:
+            raise ValueError("Missing spectrum regions.")
         region_name = RegionNames(region_name)
         spec_region_keys = [
-            i for i in self.spec_regions.keys() if region_name.name in i
+            i for i in self.spec_regions.keys() if region_name.value in i
         ]
         if len(spec_region_keys) != 1:
             raise ValueError(f"Key {region_name} not in {spec_region_keys}")
@@ -46,13 +52,15 @@ class SplitSpectrum(BaseModel):
 
 
 def get_default_spectrum_region_limits(
-    regions_mapping: Dict = None,
+    regions_mapping: Dict[str, SpectrumRegionLimits] | None = None,
 ) -> Dict[str, SpectrumRegionLimits]:
     if regions_mapping is None:
         regions_mapping = get_default_regions_from_toml_files()
     regions = {}
     for region_name, region_config in regions_mapping.items():
-        regions[region_name] = SpectrumRegionLimits(name=region_name, **region_config)
+        regions[region_name] = SpectrumRegionLimits(
+            name=region_name, **region_config.model_dump(exclude={"name"})
+        )
     return regions
 
 
@@ -68,7 +76,6 @@ def split_spectrum_data_in_regions(
     the names of the regions are taken from SpectrumRegionLimits
     and set as attributes to the instance.
     """
-
     if spec_region_limits is None:
         spec_region_limits = get_default_spectrum_region_limits()
     spec_regions = {}

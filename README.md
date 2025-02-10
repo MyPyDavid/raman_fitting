@@ -28,7 +28,7 @@ https://github.com/MyPyDavid/raman-fitting/wiki
 A release is now available on PyPI, installation can be done with these commands in a terminal.
 ``` bash
 # Setting up and activating a virtual environment
-python -m venv env # python 3.11 is recommended
+python -m venv env # python 3.12 is recommended
 source env/bin/activate
 
 # Installation from PyPI
@@ -59,25 +59,26 @@ In order to test the package after installation, please try the following comman
 ``` bash
 raman_fitting run examples
 ```
-or these commands in the Python interpreter or in a Jupyter Notebook.
-``` python
-import raman_fitting
-raman_fitting.make_examples()
-```
 This test run should yield the resulting plots and files in the following folder. Where home means the local user home directory depending on the OS.
 ``` bash
 # Linux
-home/.raman_fitting/example_results
-
+home/user/raman_fitting/examples/test
 # For Other OSs, log messages will show:
 # Results saved in ...
+```
 
+or these commands in the Python interpreter or in a Jupyter Notebook.
+``` python
+from raman_fitting import make_examples
+# this will store files a temporary directory
+example_run = make_examples()
+fit_result = example_run.results['test']['testDW38C']['fit_results']['first_order'].fit_model_results['3peaks'].fit_result
 ```
 
 #### Fitting your own datafiles
 Place your data files in the default location or change this default setting in the config.
 ``` bash
-home/.raman_fitting/datafiles
+home/user/raman_fitting/datafiles
 ```
 The following command will attempt the indexing, preprocessing, fitting and plotting on all the files found in this folder.
 ``` bash
@@ -89,7 +90,7 @@ raman_fitting
 raman_fitting make index
 
 # Location of index
-home/.raman_fitting/datafiles/results/raman_fitting_index.csv
+cwd/raman_fitting_index.csv
 ```
 
 #### Datafiles
@@ -110,7 +111,7 @@ The current version is v0.8.0
 
 ### Dependencies
 
-- python >= 3.11
+- python >= 3.12
 - lmfit >= 1.2.0
 - pandas >= 2.0.0
 - scipy >= 1.10.1

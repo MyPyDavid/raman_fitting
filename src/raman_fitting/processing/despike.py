@@ -23,7 +23,6 @@ class SpectrumDespiker(BaseModel):
     moving_region_size: int = 1
     ignore_lims: Tuple[int, int] = (20, 46)
     info: Dict = Field(default_factory=dict)
-    processed_spectrum: SpectrumData = Field(None)
 
     @model_validator(mode="after")
     def process_spectrum(self) -> "SpectrumDespiker":
@@ -36,16 +35,24 @@ class SpectrumDespiker(BaseModel):
             update={"intensity": despiked_intensity}, deep=True
         )
         SpectrumData.model_validate(despiked_spec, from_attributes=True)
-        self.processed_spectrum = despiked_spec
+        self._processed_spectrum = despiked_spec
         self.info.update(**result_info)
         return self
+
+    @property
+    def processed_spectrum(self) -> SpectrumData:
+        if not hasattr(self, "_processed_spectrum"):
+            raise ValueError(
+                "Processed spectrum is not available. Ensure the model is properly initialized."
+            )
+        return self._processed_spectrum
 
     def process_intensity(self, intensity: np.ndarray) -> np.ndarray:
         despiked_intensity, _ = self.call_despike_spectrum(intensity)
         return despiked_intensity
 
     def call_despike_spectrum(self, intensity: np.ndarray) -> Tuple[np.ndarray, Dict]:
-        despiked_intensity, result_info = despike_spectrum(
+        despiked_intensity, result_info = despike_spectrum_intensity(
             intensity,
             self.threshold_z_value,
             self.moving_region_size,
@@ -54,7 +61,7 @@ class SpectrumDespiker(BaseModel):
         return despiked_intensity, result_info
 
 
-def despike_spectrum(
+def despike_spectrum_intensity(
     intensity: np.ndarray,
     threshold_z_value: int,
     moving_region_size: int,
@@ -132,3 +139,7 @@ def despike_filter(
             else:
                 i_despiked[i] = intensity[i]
     return i_despiked
+
+
+def despike_spectrum_data(spectrum: SpectrumData) -> SpectrumData:
+    return SpectrumDespiker(spectrum=spectrum).processed_spectrum

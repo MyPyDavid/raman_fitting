@@ -1,41 +1,64 @@
-from typing import List
-import logging
 from pathlib import Path
-from pydantic import BaseModel, DirectoryPath, Field, model_validator
+from typing import Sequence
+from pydantic import BaseModel, DirectoryPath, Field, computed_field
 
-logger = logging.getLogger(__name__)
+from loguru import logger
 
 
 class FileFinder(BaseModel):
     directory: DirectoryPath
-    suffixes: List[str] = Field([".txt"])
-    files: List[Path] = Field(None, init_var=False)
+    suffixes: Sequence[str] = Field(default_factory=lambda: [".txt"])
+    exclusions: Sequence[str] = Field(default_factory=lambda: ["."])
 
-    @model_validator(mode="after")
-    def parse_metadata_from_filepath(self) -> "FileFinder":
-        if self.files is None:
-            files = find_files(self.directory, self.suffixes)
-            self.files = files
+    @computed_field
+    @property
+    def files(self) -> list[Path]:
+        files = find_files(self.directory, self.suffixes, self.exclusions)
+        if not files:
+            logger.warning(
+                f"FileFinder warning: no files were found in the chosen data file dir.\n{self.directory}\nPlease choose another directory which contains your data files."
+            )
+        return files
 
-        return self
 
-
-def find_files(directory: Path, suffixes: List[str]) -> List[Path]:
-    """
-    Creates a list of all raman type files found in the DATASET_DIR which are used in the creation of the index.
-    """
-
+def find_files(
+    directory: Path, suffixes: Sequence[str], exclusions: Sequence[str]
+) -> list[Path]:
+    """Find files in the directory with given suffixes and exclude paths containing any of the exclusions."""
     raman_files = []
-
     for suffix in suffixes:
-        files = list(directory.rglob(f"*{suffix}"))
+        files = list(directory.rglob(f"**/*{suffix}"))
+        if not files:
+            logger.debug(
+                f"find_files warning: no files were found for the suffix {suffix} in the chosen data file dir.\n{directory}\nPlease choose another directory which contains your data files."
+            )
+        else:
+            logger.info(
+                f"find_files {len(files)} files were found for the suffix {suffix} in the chosen data dir:\n\t{directory}"
+            )
         raman_files += files
 
     if not raman_files:
+        logger.debug(
+            f"find_files warning: no files were found in the chosen data file dir.\n{directory}\nPlease choose another directory which contains your data files."
+        )
+
+    # Filter out files that have any Path.parts that start with an exclusion
+    filtered_files = [
+        file
+        for file in raman_files
+        if not any(
+            part.startswith(exclusion)
+            for part in file.parts
+            for exclusion in exclusions
+        )
+    ]
+
+    if raman_files and not filtered_files:
         logger.warning(
-            f"find_files warning: the chose data file dir was empty.\n{directory}\mPlease choose another directory which contains your data files."
+            f"find_files warning: the files were excluded because they contain the following exclusions:\n\t{exclusions}"
         )
     logger.info(
-        f"find_files {len(raman_files)} files were found in the chosen data dir:\n\t{directory}"
+        f"find_files {len(filtered_files)} files were found in the chosen data dir:\n\t{directory}"
     )
-    return raman_files
+    return filtered_files
