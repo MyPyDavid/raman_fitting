@@ -1,6 +1,9 @@
 # Use a Python image with uv pre-installed
 FROM ghcr.io/astral-sh/uv:python3.12-bookworm-slim
 
+# Create a non-root user and group
+RUN groupadd -r nonroot && useradd -r -g nonroot nonroot
+
 # Install the project into `/app`
 WORKDIR /app
 
@@ -27,8 +30,14 @@ COPY src ./src
 RUN --mount=type=cache,target=/root/.cache/uv \
     uv sync --frozen
 
+# Set ownership of the app directory to the non-root user
+RUN chown -R nonroot:nonroot /app
+
 # Place executables in the environment at the front of the path
 ENV PATH="/app/.venv/bin:$PATH"
+
+# Switch to non-root user
+USER nonroot
 
 # Reset the entrypoint, don't invoke `uv`
 ENTRYPOINT ["uv", "run"]
