@@ -308,8 +308,8 @@ def initialize_index_from_source_files(
 
 def find_files_and_initialize_index(
     directory: Path,
-    suffixes: list[str],
-    exclusions: list[str],
+    suffixes: Sequence[str],
+    exclusions: Sequence[str],
     index_file: FilePath,
 ) -> RamanFileIndex:
     file_finder = FileFinder(

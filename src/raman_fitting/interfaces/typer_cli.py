@@ -186,7 +186,11 @@ def make(
             persist_to_file=True,
         )
         if index is not None:
-            typer.echo(f"index prepared and saved to {index.index_file}")
+            typer.echo(
+                f"Index({len(index)}) is initialized  and saved to {index.index_file}"
+            )
+        else:
+            typer.echo("Index could not be initilized. Check source files.")
     elif make_type == MakeTypes.CONFIG:
         dump_default_config(LOCAL_CONFIG_FILE)
         typer.echo(f"config file created: {LOCAL_CONFIG_FILE}")

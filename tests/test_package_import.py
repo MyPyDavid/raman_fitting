@@ -5,7 +5,7 @@ def test_call_version_on_package():
     import raman_fitting
 
     version = raman_fitting.utils.version()
-    assert raman_fitting.__package_name__ in version
+    assert raman_fitting.__about__.__version__ in version
 
 
 @pytest.mark.slow

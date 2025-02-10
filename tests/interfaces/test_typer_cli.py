@@ -40,7 +40,9 @@ def test_make_example_command():
 def test_make_index_command():
     result = runner.invoke(app, ["make", "index"])
     assert result.exit_code == 0
-    assert "index prepared" in result.stdout  # Adjust this based on actual output
+    assert (
+        "initialized  and saved" in result.stdout
+    )  # Adjust this based on actual output
 
 
 def test_make_config_command():
