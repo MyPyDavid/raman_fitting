@@ -1,7 +1,5 @@
 .venv/
 # Ignore the 'data' and 'output' directories
-data/
-output/
 examples/
 
 # Ignore Python bytecode files and cache directories

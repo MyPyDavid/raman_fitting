@@ -10,6 +10,10 @@ ENV UV_COMPILE_BYTECODE=1
 # Copy from the cache instead of linking since it's a mounted volume
 ENV UV_LINK_MODE=copy
 
+# Copy the pyproject.toml and README.md to the working directory
+COPY pyproject.toml README.md LICENSE uv.lock ./
+COPY src/raman_fitting/__about__.py ./src/raman_fitting/
+
 # Install the project's dependencies using the lockfile and settings
 RUN --mount=type=cache,target=/root/.cache/uv \
     --mount=type=bind,source=uv.lock,target=uv.lock \
@@ -18,7 +22,7 @@ RUN --mount=type=cache,target=/root/.cache/uv \
 
 # Then, add the rest of the project source code and install it
 # Installing separately from its dependencies allows optimal layer caching
-ADD . /app
+COPY src ./src
 
 RUN --mount=type=cache,target=/root/.cache/uv \
     uv sync --frozen

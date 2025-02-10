@@ -75,7 +75,7 @@ raman_fitting = "raman_fitting.interfaces.typer_cli:app"
 
 
 [tool.hatch.version]
-path = "src/raman_fitting/__init__.py"
+path = "src/raman_fitting/__about__.py"
 
 [tool.hatch.build.targets.sdist]
 exclude = ["/profiling"]
