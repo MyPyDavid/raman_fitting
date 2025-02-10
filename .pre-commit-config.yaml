@@ -5,6 +5,7 @@ repos:
   - repo: https://github.com/pre-commit/pre-commit-hooks
     rev: v5.0.0
     hooks:
+      - id: check-yaml
       - id: check-added-large-files
         name: Check for files larger than 5 MB
         args: [ "--maxkb=5120" ]
