@@ -53,7 +53,7 @@ state = {"verbose": False}
 def current_dir_prepare_index_kwargs():
     file_finder = FileFinder(
         directory=Path.cwd(),
-        suffixes=SPECTRUM_FILETYPE_PARSERS.keys(),
+        suffixes=list(SPECTRUM_FILETYPE_PARSERS.keys()),
         exclusions=["."],
     )
     source_files = file_finder.files
